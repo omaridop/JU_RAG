@@ -1,0 +1,75 @@
+{% extends "admin/base_admin.html" %}
+{% from "_icons.html" import icon %}
+{% from "_i18n.html" import t with context %}
+{% block admin_title %}{{ t('الذاكرة', 'Memory') }}{% endblock %}
+{% block page_title %}{{ t('الذاكرة', 'Memory') }}{% endblock %}
+{% block admin %}
+<div class="card mb-22">
+  <h3>{{ t('إضافة إجابة محفوظة', 'Add a saved answer') }}</h3>
+  <p class="sub">
+    {{ t('الإجابات المحفوظة تُعاد', 'Saved answers are returned') }} <strong>{{ t('فوراً ودون استهلاك رموز', 'instantly and at no token cost') }}</strong>
+    {{ t('عندما يطرح الطالب السؤال نفسه أو سؤالاً مشابهاً جداً. مناسبة للأسئلة الشائعة.',
+        'when a student asks the same — or a very similar — question. Ideal for frequently asked questions.') }}
+  </p>
+  <form method="post" action="{{ url_for('admin.memory_add') }}">
+      {{ csrf_field() }}
+    <div class="field">
+      <label>{{ t('السؤال', 'Question') }}</label>
+      <input type="text" name="question" required placeholder="{{ t('مثال: ما هي ساعات عمل دائرة التسجيل؟', 'e.g. What are the Registration Unit’s working hours?') }}">
+    </div>
+    <div class="field">
+      <label>{{ t('الإجابة', 'Answer') }}</label>
+      <textarea name="answer" required placeholder="{{ t('الإجابة التي ستُعاد كما هي…', 'The answer to return verbatim…') }}"></textarea>
+    </div>
+    <button class="btn" type="submit">{{ icon('plus') }} {{ t('إضافة إلى الذاكرة', 'Add to memory') }}</button>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr><th>{{ t('السؤال', 'Question') }}</th><th>{{ t('الإجابة', 'Answer') }}</th><th>{{ t('اللغة', 'Lang') }}</th><th>{{ t('مرات الاستخدام', 'Hits') }}</th><th>{{ t('تاريخ الإنشاء', 'Created') }}</th><th>{{ t('إجراءات', 'Actions') }}</th></tr>
+    </thead>
+    <tbody>
+      {% for m in items %}
+      <tr>
+        <td style="max-width:280px"><strong>{{ m.question[:120] }}{{ '…' if m.question|length > 120 }}</strong></td>
+        <td style="max-width:360px">{{ m.answer[:160] }}{{ '…' if m.answer|length > 160 }}</td>
+        <td><span class="tag">{{ m.lang or '—' }}</span></td>
+        <td>{{ m.hits }}</td>
+        <td style="white-space:nowrap" dir="ltr">{{ m.created_at | fmt_date }}</td>
+        <td>
+          <div class="acts">
+            <button class="btn btn-ghost btn-sm edit-mem" type="button"
+                    data-id="{{ m.id }}" data-q="{{ m.question|e }}" data-a="{{ m.answer|e }}">{{ t('تعديل', 'Edit') }}</button>
+            <form class="inline" method="post" action="{{ url_for('admin.memory_delete', mem_id=m.id) }}"
+                  data-confirm="{{ t('حذف هذا المدخل من الذاكرة؟', 'Delete this memory entry?') }}">
+      {{ csrf_field() }}
+              <button class="icon-btn danger" type="submit" title="{{ t('حذف', 'Delete') }}">{{ icon('trash') }}</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted" style="text-align:center; padding:30px">
+        {{ t('لا توجد مدخلات بعد. أضِف واحدة من الأعلى، أو احفظ إجابة من', 'No entries yet. Add one above, or save an answer from the') }}
+        <a href="{{ url_for('admin.logs') }}">{{ t('سجل المحادثات', 'chat history') }}</a>.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="modal-bg" id="memModal">
+  <form class="modal" method="post" id="memEditForm">
+      {{ csrf_field() }}
+    <h3>{{ t('تعديل المدخل', 'Edit entry') }}</h3>
+    <div class="field"><label>{{ t('السؤال', 'Question') }}</label><input type="text" name="question" id="memQ" required></div>
+    <div class="field"><label>{{ t('الإجابة', 'Answer') }}</label><textarea name="answer" id="memA" required></textarea></div>
+    <div class="actions">
+      <button class="btn" type="submit">{{ t('حفظ التغييرات', 'Save changes') }}</button>
+      <button class="btn btn-ghost" type="button" data-close-modal>{{ t('إلغاء', 'Cancel') }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

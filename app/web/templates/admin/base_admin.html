@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_i18n.html" import t with context %}
+{% set ep = request.endpoint %}
+{% set alang = request.cookies.get('ju_admin_lang', 'ar') %}
+{% block html_attrs %}lang="{{ alang }}" dir="{{ 'ltr' if alang == 'en' else 'rtl' }}"{% endblock %}
+{% block title %}{% block admin_title %}{{ t('لوحة التحكم', 'Dashboard') }}{% endblock %} — {{ t('الجامعة الأردنية', 'University of Jordan') }}{% endblock %}
+{% block body %}
+<div class="admin-shell">
+  <nav class="rail" aria-label="{{ t('التنقل', 'Navigation') }}">
+    <img class="logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="University of Jordan">
+    <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if ep == 'admin.dashboard' }}">{{ icon('home') }}<span>{{ t('الرئيسية', 'Home') }}</span></a>
+    <a href="{{ url_for('admin.documents') }}" class="{{ 'active' if ep == 'admin.documents' }}">{{ icon('docs') }}<span>{{ t('المستندات', 'Documents') }}</span></a>
+    <a href="{{ url_for('admin.logs') }}" class="{{ 'active' if ep == 'admin.logs' }}">{{ icon('chat') }}<span>{{ t('المحادثات', 'Chats') }}</span></a>
+    <a href="{{ url_for('admin.analytics') }}" class="{{ 'active' if ep == 'admin.analytics' }}">{{ icon('chart') }}<span>{{ t('التحليلات', 'Analytics') }}</span></a>
+    <a href="{{ url_for('admin.memory') }}" class="{{ 'active' if ep == 'admin.memory' }}">{{ icon('memory') }}<span>{{ t('الذاكرة', 'Memory') }}</span></a>
+    <a href="{{ url_for('admin.costs') }}" class="{{ 'active' if ep == 'admin.costs' }}">{{ icon('coins') }}<span>{{ t('التكلفة', 'Cost') }}</span></a>
+    <a href="{{ url_for('admin.settings_page') }}" class="{{ 'active' if ep == 'admin.settings_page' }}">{{ icon('settings') }}<span>{{ t('الإعدادات', 'Settings') }}</span></a>
+    {% if current_admin and current_admin.role == 'super' %}
+    <a href="{{ url_for('admin.admins') }}" class="{{ 'active' if ep == 'admin.admins' }}">{{ icon('users') }}<span>{{ t('المشرفون', 'Admins') }}</span></a>
+    <a href="{{ url_for('admin.audit') }}" class="{{ 'active' if ep == 'admin.audit' }}">{{ icon('eye') }}<span>{{ t('سجل النشاط', 'Audit') }}</span></a>
+    {% endif %}
+    <span class="spacer"></span>
+    <a href="{{ url_for('auth.logout') }}" class="logout" title="{{ t('تسجيل الخروج', 'Sign out') }}">{{ icon('logout') }}<span>{{ t('خروج', 'Sign out') }}</span></a>
+  </nav>
+
+  <div class="admin-main">
+    <header class="topbar">
+      <h1>{% block page_title %}{{ t('لوحة التحكم', 'Dashboard') }}{% endblock %}</h1>
+      <span class="grow"></span>
+      <div class="lang-toggle" role="group" aria-label="{{ t('اللغة', 'Language') }}">
+        <button type="button" data-set-lang="ar" class="{{ 'active' if alang != 'en' }}">العربية</button>
+        <button type="button" data-set-lang="en" class="{{ 'active' if alang == 'en' }}">EN</button>
+      </div>
+      {% if current_admin %}
+      <span class="who">{{ current_admin.username }}{% if current_admin.role == 'super' %} <span class="tag">{{ t('رئيسي', 'Super') }}</span>{% endif %}</span>
+      {% endif %}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('chat.index') }}" target="_blank">{{ t('عرض الموقع', 'View site') }}</a>
+    </header>
+    <div class="admin-body">
+      {% block admin %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ asset('js/admin.js') }}"></script>
+{% endblock %}

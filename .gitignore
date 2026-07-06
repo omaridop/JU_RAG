@@ -1,0 +1,43 @@
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Editors / IDE / tooling ──────────────────────────────
+.idea/
+.vscode/
+.claude/
+
+# ─── Secrets (never commit real credentials) ──────────────
+.env
+.env.*
+!.env.example
+
+# ─── Runtime data — knowledge base, vectors, DB, uploads ──
+# The knowledge base is built from private institutional documents
+# and is intentionally NOT published. Only the code is.
+data/uploads/*
+data/processed/*
+data/chroma/*
+data/qa/*
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Keep the folder structure, drop the contents
+!data/uploads/.gitkeep
+!data/processed/.gitkeep
+!data/chroma/.gitkeep
+!data/qa/.gitkeep
+!data/qa/sample_qa.json
+
+# ─── Logs ─────────────────────────────────────────────────
+*.log
+logs/

@@ -1,0 +1,91 @@
+{#  Admin bilingual helpers — Arabic (default) / English.
+    Language is read from the `ju_admin_lang` cookie (set client-side by the
+    AR/EN toggle in the topbar). Import WITH CONTEXT so `request` is available:
+
+        {% from "_i18n.html" import t, status_label, served_label, op_label, action_label with context %}
+        <h1>{{ t('لوحة التحكم', 'Dashboard') }}</h1>
+#}
+
+{%- macro _en() -%}{{ 'en' if request.cookies.get('ju_admin_lang', 'ar') == 'en' else '' }}{%- endmacro -%}
+
+{#- Pick Arabic or English. -#}
+{%- macro t(ar, en) -%}{{ en if request.cookies.get('ju_admin_lang', 'ar') == 'en' else ar }}{%- endmacro -%}
+
+{#- Document ingest status. -#}
+{%- macro status_label(s) -%}
+{%- set en = request.cookies.get('ju_admin_lang', 'ar') == 'en' -%}
+{%- set m = {
+  'pending':    ['بالانتظار', 'Pending'],
+  'processing': ['قيد المعالجة', 'Processing'],
+  'reading':    ['قيد القراءة', 'Reading'],
+  'extracting': ['قيد الاستخراج', 'Extracting'],
+  'chunking':   ['قيد التقطيع', 'Chunking'],
+  'loading':    ['قيد التحميل', 'Loading'],
+  'embedding':  ['قيد التضمين', 'Embedding'],
+  'storing':    ['قيد التخزين', 'Storing'],
+  'done':       ['مكتمل', 'Done'],
+  'error':      ['خطأ', 'Error'],
+  'skipped':    ['تم تخطيه', 'Skipped'],
+} -%}
+{{- (m.get(s, [s, s])[1] if en else m.get(s, [s, s])[0]) -}}
+{%- endmacro -%}
+
+{#- Where a chat answer was served from. -#}
+{%- macro served_label(s) -%}
+{%- set en = request.cookies.get('ju_admin_lang', 'ar') == 'en' -%}
+{%- set m = {
+  'rag':          ['بحث وتوليد', 'Retrieved'],
+  'memory':       ['ذاكرة', 'Memory'],
+  'limit':        ['حد الجلسة', 'Session limit'],
+  'budget':       ['سقف الميزانية', 'Budget cap'],
+  'error':        ['خطأ', 'Error'],
+  'rate_limited': ['تقييد المعدّل', 'Rate limited'],
+  'web':          ['بحث في الموقع', 'Web search'],
+} -%}
+{{- (m.get(s, [s, s])[1] if en else m.get(s, [s, s])[0]) -}}
+{%- endmacro -%}
+
+{#- Token-usage operation labels. -#}
+{%- macro op_label(op) -%}
+{%- set en = request.cookies.get('ju_admin_lang', 'ar') == 'en' -%}
+{%- set m = {
+  'chat':       ['إجابات المحادثة', 'Chat answers'],
+  'condense':   ['إعادة صياغة السؤال', 'Query condensing'],
+  'embed':      ['التضمين (Embeddings)', 'Embeddings'],
+  'read':       ['قراءة المستندات', 'Document reading'],
+  'qa':         ['توليد الأسئلة والأجوبة', 'Q&A generation'],
+  'chunk':      ['التقطيع الدلالي', 'Semantic chunking'],
+  'web_search': ['البحث في موقع الجامعة', 'JU website search'],
+} -%}
+{{- (m.get(op, [op, op])[1] if en else m.get(op, [op, op])[0]) -}}
+{%- endmacro -%}
+
+{#- Admin audit-trail action labels. -#}
+{%- macro action_label(a) -%}
+{%- set en = request.cookies.get('ju_admin_lang', 'ar') == 'en' -%}
+{%- set m = {
+  'login':               ['تسجيل دخول', 'Sign in'],
+  'login_failed':        ['محاولة دخول فاشلة', 'Failed sign-in'],
+  'upload_document':     ['رفع مستند', 'Upload document'],
+  'paste_text':          ['إضافة نص مكتوب', 'Add typed text'],
+  'reingest_document':   ['إعادة معالجة مستند', 'Re-process document'],
+  'delete_document':     ['حذف مستند', 'Delete document'],
+  'promote_to_memory':   ['حفظ في الذاكرة', 'Save to memory'],
+  'memory_add':          ['إضافة للذاكرة', 'Add memory'],
+  'memory_edit':         ['تعديل الذاكرة', 'Edit memory'],
+  'memory_delete':       ['حذف من الذاكرة', 'Delete memory'],
+  'settings_change':     ['تغيير إعداد', 'Change setting'],
+  'pricing_update':      ['تحديث أسعار الرموز', 'Update token prices'],
+  'pricing_refresh':     ['جلب الأسعار من OpenRouter', 'Refresh prices'],
+  'budget_set':          ['ضبط سقف الإنفاق', 'Set spend cap'],
+  'change_own_password': ['تغيير كلمة المرور', 'Change password'],
+  'admin_create':        ['إضافة مشرف', 'Add admin'],
+  'admin_delete':        ['حذف مشرف', 'Delete admin'],
+  'admin_reset_password':['تغيير كلمة مرور مشرف', 'Reset admin password'],
+  'admin_set_department': ['تغيير قسم مشرف', 'Set admin department'],
+  'toggle_document':      ['تفعيل/تعطيل مستند', 'Toggle document'],
+  'department_add':       ['إضافة قسم', 'Add department'],
+  'department_delete':    ['حذف قسم', 'Delete department'],
+} -%}
+{{- (m.get(a, [a, a])[1] if en else m.get(a, [a, a])[0]) -}}
+{%- endmacro -%}

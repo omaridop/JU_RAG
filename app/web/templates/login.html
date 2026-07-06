@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_i18n.html" import t with context %}
+{% set alang = request.cookies.get('ju_admin_lang', 'ar') %}
+{% block html_attrs %}lang="{{ alang }}" dir="{{ 'ltr' if alang == 'en' else 'rtl' }}"{% endblock %}
+{% block title %}{{ t('تسجيل الدخول', 'Sign in') }} — {{ t('لوحة التحكم', 'Control panel') }}{% endblock %}
+{% block body %}
+<div class="login">
+  <div class="form-side">
+    <div class="form-card">
+      <img class="logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="University of Jordan">
+      <div class="uni">{{ t('الجامعة الأردنية', 'University of Jordan') }}</div>
+      <h1>{{ t('لوحة تحكم المساعد', 'Assistant control panel') }}</h1>
+      <form method="post" action="{{ url_for('auth.login') }}">
+      {{ csrf_field() }}
+        <div class="field">
+          <label for="username">{{ t('اسم المستخدم', 'Username') }}</label>
+          <input type="text" id="username" name="username" required autofocus autocomplete="username" dir="ltr">
+        </div>
+        <div class="field">
+          <label for="password">{{ t('كلمة المرور', 'Password') }}</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" dir="ltr">
+        </div>
+        <button class="btn" type="submit" style="width:100%">{{ t('دخول', 'Sign in') }}</button>
+      </form>
+      <div style="margin-top:18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+        <a href="{{ url_for('chat.index') }}">{{ t('العودة إلى المحادثة', 'Back to chat') }}</a>
+        <div class="lang-toggle" role="group" aria-label="{{ t('اللغة', 'Language') }}">
+          <button type="button" data-set-lang="ar" class="{{ 'active' if alang != 'en' }}">العربية</button>
+          <button type="button" data-set-lang="en" class="{{ 'active' if alang == 'en' }}">EN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="art">
+    <div class="art-in">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="University of Jordan">
+      <h2>{{ t('المساعد الذكي للطلبة', 'Smart Student Assistant') }}</h2>
+      <p>{{ t('منصّة الجامعة الأردنية للإجابة عن استفسارات الطلبة بالعربية والإنجليزية، على مدار الساعة.',
+          'The University of Jordan platform that answers student questions in Arabic and English, around the clock.') }}</p>
+    </div>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.cookie = 'ju_admin_lang=' + b.dataset.setLang + ';path=/;max-age=31536000;samesite=lax';
+      location.reload();
+    });
+  });
+</script>
+{% endblock %}

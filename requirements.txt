@@ -1,0 +1,32 @@
+# ============================================================================
+#  University of Jordan — Bilingual RAG Assistant
+#  Python 3.11+  (tested on 3.13). Versions pinned for reproducible deploys.
+# ============================================================================
+
+# --- Web framework -----------------------------------------------------------
+Flask==3.1.3
+Werkzeug==3.1.8
+MarkupSafe==3.0.3
+python-dotenv==1.2.2
+
+# --- LLM + Embeddings: everything via OpenRouter (OpenAI-compatible API) ------
+#   * chat       -> deepseek/deepseek-v4-flash
+#   * reading/QA -> google/gemini-2.5-flash   (native PDF)
+#   * embeddings -> google/gemini-embedding-2
+openai==2.41.0
+
+# --- Vector database ---------------------------------------------------------
+chromadb==1.5.9
+
+# --- Document parsing --------------------------------------------------------
+PyMuPDF==1.27.2.3   # PDF (excellent Arabic/Unicode); import name: fitz
+python-docx==1.2.0  # DOCX
+
+# --- Resilience --------------------------------------------------------------
+tenacity==9.1.4     # exponential-backoff retries for external API calls
+
+# --- Production WSGI server (optional but recommended) -----------------------
+waitress==3.0.2
+
+# --- Dev / tests (optional) --------------------------------------------------
+pytest==8.3.4

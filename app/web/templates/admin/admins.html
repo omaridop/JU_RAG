@@ -1,0 +1,131 @@
+{% extends "admin/base_admin.html" %}
+{% from "_icons.html" import icon %}
+{% from "_i18n.html" import t with context %}
+{% block admin_title %}{{ t('المشرفون', 'Admins') }}{% endblock %}
+{% block page_title %}{{ t('إدارة المشرفين', 'Admin management') }}{% endblock %}
+{% block admin %}
+{% set dept_names = departments | map(attribute='name') | list %}
+
+<div class="card mb-22">
+  <h3>{{ t('الأقسام / الدوائر', 'Departments') }}</h3>
+  <p class="sub">{{ t('أضِف الأقسام هنا، ثم عيّن كل مشرف لأحدها من القائمة. يرى المشرف مستندات قسمه فقط.',
+      'Add departments here, then assign each admin to one from the list. An admin only sees their own department’s documents.') }}</p>
+  <form method="post" action="{{ url_for('admin.department_add') }}"
+        style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px">
+      {{ csrf_field() }}
+    <div class="field" style="margin:0; flex:1; min-width:240px">
+      <label for="dept_name">{{ t('اسم القسم', 'Department name') }}</label>
+      <input type="text" id="dept_name" name="name" required
+             placeholder="{{ t('مثال: القبول والتسجيل', 'e.g. Admission & Registration') }}">
+    </div>
+    <button class="btn" type="submit">{{ icon('plus') }} {{ t('إضافة قسم', 'Add department') }}</button>
+  </form>
+  {% if departments %}
+  <div class="chips">
+    {% for d in departments %}
+    <span class="chip">{{ d.name }}
+      <form class="inline" method="post" action="{{ url_for('admin.department_delete', dept_id=d.id) }}"
+            data-confirm="{{ t('حذف القسم «' ~ d.name ~ '»؟ لن يُحذف المشرفون أو المستندات.', 'Delete department “' ~ d.name ~ '”? Admins and documents are not deleted.') }}">
+      {{ csrf_field() }}
+        <button class="chip-x" type="submit" aria-label="{{ t('حذف', 'Delete') }}">&times;</button>
+      </form>
+    </span>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted" style="margin:0">{{ t('لا توجد أقسام بعد — أضِف أوّل قسم لتتمكن من إضافة مشرفين.',
+      'No departments yet — add your first one to start assigning admins.') }}</p>
+  {% endif %}
+</div>
+
+<div class="card mb-22">
+  <h3>{{ t('إضافة مشرف جديد', 'Add a new admin') }}</h3>
+  <p class="sub">
+    {{ t('المشرف العادي يمكنه إدارة المستندات والمحادثات والذاكرة والإعدادات. إدارة المشرفين والأقسام و«سجل النشاط» متاحة للمشرف الرئيسي فقط.',
+        'A regular admin can manage documents, chats, memory and settings. Managing admins, departments and the audit trail is available to the super admin only.') }}
+  </p>
+  <form method="post" action="{{ url_for('admin.admin_add') }}" autocomplete="off">
+      {{ csrf_field() }}
+    <div class="row">
+      <div class="field" style="flex:1; min-width:200px">
+        <label for="username">{{ t('اسم المستخدم', 'Username') }}</label>
+        <input type="text" id="username" name="username" required dir="ltr"
+               pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,31}" autocomplete="off"
+               placeholder="{{ t('مثال: registrar1', 'e.g. registrar1') }}">
+        <span class="hint">{{ t('3–32 حرفاً لاتينياً أو أرقاماً (يُسمح بـ . _ -).', '3–32 latin letters or digits ( . _ - allowed).') }}</span>
+      </div>
+      <div class="field" style="flex:1; min-width:200px">
+        <label for="department">{{ t('القسم / الدائرة', 'Department') }}</label>
+        <select id="department" name="department" required {{ 'disabled' if not departments }}>
+          <option value="" disabled selected>{{ t('اختر القسم…', 'Choose a department…') }}</option>
+          {% for d in departments %}<option value="{{ d.name }}">{{ d.name }}</option>{% endfor %}
+        </select>
+        <span class="hint">{{ t('من قائمة الأقسام أعلاه.', 'From the department list above.') if departments
+            else t('أضِف قسماً أولاً من الأعلى.', 'Add a department above first.') }}</span>
+      </div>
+      <div class="field" style="flex:1; min-width:200px">
+        <label for="password">{{ t('كلمة المرور', 'Password') }}</label>
+        <input type="password" id="password" name="password" required minlength="8"
+               dir="ltr" autocomplete="new-password">
+        <span class="hint">{{ t('8 أحرف على الأقل.', 'At least 8 characters.') }}</span>
+      </div>
+    </div>
+    <button class="btn" type="submit" {{ 'disabled' if not departments }}>{{ icon('users') }} {{ t('إضافة المشرف', 'Add admin') }}</button>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table class="data">
+    <thead>
+      <tr><th>{{ t('المستخدم', 'User') }}</th><th>{{ t('الدور', 'Role') }}</th><th style="min-width:200px">{{ t('القسم', 'Department') }}</th><th>{{ t('أضافه', 'Added by') }}</th><th>{{ t('تاريخ الإنشاء', 'Created') }}</th><th>{{ t('إجراءات', 'Actions') }}</th></tr>
+    </thead>
+    <tbody>
+      {% for a in admins %}
+      <tr>
+        <td dir="ltr"><strong>{{ a.username }}</strong></td>
+        <td>
+          {% if a.role == 'super' %}<span class="pill done"><span class="dot"></span>{{ t('مشرف رئيسي', 'Super admin') }}</span>
+          {% else %}<span class="pill pending"><span class="dot"></span>{{ t('مشرف', 'Admin') }}</span>{% endif %}
+        </td>
+        <td>
+          {% if a.role == 'super' %}<span class="muted">{{ t('كل الأقسام', 'All departments') }}</span>
+          {% else %}
+          <form class="inline" method="post" action="{{ url_for('admin.admin_set_department', admin_id=a.id) }}">
+      {{ csrf_field() }}
+            <select name="department" onchange="this.form.submit()" style="max-width:200px; min-width:140px">
+              <option value="">{{ t('بلا قسم', 'No department') }}</option>
+              {% if a.department and a.department not in dept_names %}
+              <option value="{{ a.department }}" selected>{{ a.department }} ({{ t('غير مُدار', 'unmanaged') }})</option>
+              {% endif %}
+              {% for d in departments %}<option value="{{ d.name }}" {{ 'selected' if a.department == d.name }}>{{ d.name }}</option>{% endfor %}
+            </select>
+          </form>
+          {% endif %}
+        </td>
+        <td dir="ltr">{{ a.created_by or '—' }}</td>
+        <td>{{ a.created_at | fmt_date(true) }}</td>
+        <td>
+          {% if a.role != 'super' %}
+          <div class="acts" style="gap:10px">
+            <form class="inline" method="post" style="display:flex; gap:6px"
+                  action="{{ url_for('admin.admin_reset_password', admin_id=a.id) }}">
+      {{ csrf_field() }}
+              <input type="password" name="new_password" minlength="8" required dir="ltr"
+                     placeholder="{{ t('كلمة مرور جديدة', 'New password') }}" style="max-width:170px" autocomplete="new-password">
+              <button class="icon-btn" type="submit" title="{{ t('تغيير كلمة المرور', 'Reset password') }}">{{ icon('settings') }}</button>
+            </form>
+            <form class="inline" method="post"
+                  action="{{ url_for('admin.admin_delete', admin_id=a.id) }}"
+                  data-confirm="{{ t('حذف المشرف «' ~ a.username ~ '»؟ سيبقى سجل نشاطه محفوظاً.', 'Delete admin “' ~ a.username ~ '”? Their activity log is kept.') }}">
+      {{ csrf_field() }}
+              <button class="icon-btn danger" type="submit" title="{{ t('حذف', 'Delete') }}">{{ icon('trash') }}</button>
+            </form>
+          </div>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

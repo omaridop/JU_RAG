@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "source": "University of Jordan — Student FAQ (SAMPLE)",
+    "category": "general",
+    "language": "bilingual",
+    "date": "2026-06-01",
+    "author": "Deanship of Student Affairs",
+    "note": "SAMPLE data for demonstration. Replace the answers with verified official information before going live. The top-level 'date' is the effective date used for recency-aware retrieval; a Q&A pair may override it with its own 'date'."
+  },
+  "qa_pairs": [
+    {
+      "question": "What are the working hours of the Admission and Registration Unit?",
+      "answer": "The Admission and Registration Unit is generally open Sunday to Thursday from 8:00 AM to 3:00 PM. Hours may change during exam periods and official holidays — always check the latest announcement on the university portal.",
+      "language": "en",
+      "tags": ["registration", "hours", "contact"]
+    },
+    {
+      "question": "ما هي ساعات عمل دائرة القبول والتسجيل؟",
+      "answer": "تعمل دائرة القبول والتسجيل عادةً من الأحد إلى الخميس من الساعة 8:00 صباحاً حتى 3:00 عصراً. قد تتغير الساعات خلال فترات الامتحانات والعطل الرسمية، لذا يُرجى دائماً مراجعة آخر إعلان على بوابة الجامعة.",
+      "language": "ar",
+      "tags": ["التسجيل", "ساعات العمل", "تواصل"]
+    },
+    {
+      "question": "How do I reset my university portal password?",
+      "answer": "Use the 'Forgot Password' link on the university portal login page and follow the verification steps sent to your university email. If you cannot access your email, contact the Computer Center with your university ID for assistance.",
+      "language": "en",
+      "tags": ["portal", "password", "IT"]
+    },
+    {
+      "question": "كيف يمكنني الانسحاب من مادة دراسية؟",
+      "answer": "يمكن الانسحاب من مادة دراسية خلال الفترة المحددة في التقويم الجامعي عبر بوابة الطالب الإلكترونية، شريطة عدم النزول عن الحد الأدنى للعبء الدراسي. راجِع التقويم الجامعي للفصل الحالي لمعرفة آخر موعد للانسحاب.",
+      "language": "ar",
+      "tags": ["الانسحاب", "المواد", "التقويم الجامعي"],
+      "date": "2026-09-01"
+    }
+  ]
+}

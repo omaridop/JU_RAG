@@ -1,0 +1,252 @@
+{% extends "admin/base_admin.html" %}
+{% from "_icons.html" import icon %}
+{% from "_i18n.html" import t, op_label with context %}
+{% block admin_title %}{{ t('التكلفة والرموز', 'Cost & tokens') }}{% endblock %}
+{% block page_title %}{{ t('حاسبة الرموز والتكلفة', 'Token & cost calculator') }}{% endblock %}
+{% block admin %}
+
+<div class="stats mb-22">
+  <div class="stat b">
+    <div class="v">${{ '%.4f'|format(total_cost) }}</div>
+    <div class="k">{{ t('إجمالي التكلفة التقديرية', 'Total estimated cost') }}</div>
+  </div>
+  <div class="stat">
+    <div class="v">{{ '{:,}'.format(total_prompt + total_completion) }}</div>
+    <div class="k">{{ t('إجمالي الرموز', 'Total tokens') }} ({{ t('إدخال', 'in') }} {{ '{:,}'.format(total_prompt) }} · {{ t('إخراج', 'out') }} {{ '{:,}'.format(total_completion) }})</div>
+  </div>
+  <div class="stat b">
+    <div class="v">${{ '%.4f'|format(today_cost) }}</div>
+    <div class="k">{{ t('تكلفة اليوم', 'Cost today') }} · {{ '{:,}'.format(today_tokens) }} {{ t('رمز', 'tokens') }}</div>
+  </div>
+</div>
+
+<div class="card mb-22">
+  <h3>{{ t('سقف الإنفاق الشهري', 'Monthly spend cap') }}</h3>
+  <p class="sub">{{ t('عند بلوغ السقف يتوقّف المساعد عن الإجابة تلقائياً حتى الشهر التالي (حماية الميزانية). اضبطه على 0 لإلغاء الحد.',
+      'When the cap is reached the assistant pauses automatically until next month (budget protection). Set it to 0 to remove the cap.') }}</p>
+  {% if monthly_budget > 0 %}
+  <div class="budget-bar"><span style="width:{{ budget_pct }}%"
+       class="{{ 'over' if budget_pct >= 100 else ('warn' if budget_pct >= 80 else '') }}"></span></div>
+  <p class="sub" dir="ltr" style="margin-top:6px">
+    ${{ '%.4f'|format(month_cost) }} / ${{ '%.2f'|format(monthly_budget) }} ({{ budget_pct }}%) {{ t('هذا الشهر', 'this month') }}</p>
+  {% else %}
+  <p class="sub" dir="ltr">{{ t('بلا حد', 'No limit') }} · ${{ '%.4f'|format(month_cost) }} {{ t('أُنفقت هذا الشهر', 'spent this month') }}</p>
+  {% endif %}
+  {% if can_edit %}
+  <form method="post" action="{{ url_for('admin.costs_budget') }}" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-top:8px">
+    {{ csrf_field() }}
+    <div class="field" style="margin:0; max-width:200px">
+      <label for="mb">{{ t('السقف الشهري (دولار)', 'Monthly cap (USD)') }}</label>
+      <input type="number" id="mb" name="monthly_budget_usd" min="0" step="0.5"
+             value="{{ '%.2f'|format(monthly_budget) }}" dir="ltr">
+    </div>
+    <button class="btn" type="submit">{{ t('حفظ السقف', 'Save cap') }}</button>
+  </form>
+  {% endif %}
+</div>
+
+<p class="sub" style="margin:-6px 0 18px">
+  {{ t('تكلفة المحادثة والقراءة وتوليد الأسئلة تُؤخذ من', 'Chat, reading and Q&A-generation costs come from the') }}
+  <strong>{{ t('التكلفة الفعلية', 'actual cost') }}</strong> {{ t('التي يفوترها OpenRouter لكل طلب. تكلفة التضمين والتقديرات التاريخية تُحسب = الرموز × السعر لكل مليون رمز (أدناه).',
+      'OpenRouter bills per request. Embedding cost and historical estimates are computed as tokens × price per million tokens (below).') }}
+  {% if has_estimates %}{{ t('الصفوف المعلَّمة', 'Rows marked') }} <span class="tag">{{ t('تقديري', 'estimated') }}</span>
+  {{ t('هي تقدير للمستندات التي عُولجت قبل تفعيل التتبّع.', 'are estimates for documents processed before tracking was enabled.') }}{% endif %}
+</p>
+
+<!-- ── interactive calculator ─────────────────────────────────────────── -->
+<div class="card mb-22" id="tokCalc" data-pricing='{{ pricing|tojson }}'>
+  <h3 class="section-h">{{ icon('plus') }} {{ t('حاسبة التكلفة الفورية', 'Instant cost calculator') }}</h3>
+  <p class="sub">{{ t('احسب تكلفة أي عملية: اختر النموذج وأدخِل عدد الرموز، أو الصق نصاً لتقدير رموزه.',
+      'Estimate any operation: pick a model and enter token counts, or paste text to estimate its tokens.') }}</p>
+  <div class="row">
+    <div class="field" style="flex:1; min-width:220px">
+      <label for="calcModel">{{ t('النموذج', 'Model') }}</label>
+      <select id="calcModel" dir="ltr">
+        {% for m in pricing.keys() %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+      </select>
+      <span class="hint" id="calcRate" dir="ltr"></span>
+    </div>
+    <div class="field" style="flex:1; min-width:140px">
+      <label for="calcIn">{{ t('رموز الإدخال', 'Input tokens') }}</label>
+      <input type="number" id="calcIn" min="0" value="1000" dir="ltr">
+    </div>
+    <div class="field" style="flex:1; min-width:140px">
+      <label for="calcOut">{{ t('رموز الإخراج', 'Output tokens') }}</label>
+      <input type="number" id="calcOut" min="0" value="500" dir="ltr">
+    </div>
+  </div>
+  <div class="field">
+    <label for="calcText">{{ t('أو الصق نصاً لتقدير عدد رموزه', 'Or paste text to estimate its token count') }}</label>
+    <textarea id="calcText" rows="3" placeholder="{{ t('الصق النص هنا…', 'Paste text here…') }}"
+              style="width:100%; resize:vertical; font:inherit; padding:10px; border-radius:8px"></textarea>
+    <div style="display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap">
+      <button type="button" class="btn btn-ghost btn-sm" id="calcEstIn">{{ t('استخدمها كإدخال', 'Use as input') }}</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="calcEstOut">{{ t('استخدمها كإخراج', 'Use as output') }}</button>
+      <span class="muted" id="calcEst"></span>
+    </div>
+  </div>
+  <div class="calc-out">
+    {{ t('التكلفة التقديرية:', 'Estimated cost:') }} <strong id="calcCost">$0.000000</strong>
+  </div>
+</div>
+
+<!-- ── by model ───────────────────────────────────────────────────────── -->
+<h3 class="section-h">{{ t('حسب النموذج', 'By model') }}</h3>
+<div class="table-wrap mb-22">
+  <table class="data">
+    <thead><tr><th>{{ t('النموذج', 'Model') }}</th><th>{{ t('الطلبات', 'Requests') }}</th><th>{{ t('رموز الإدخال', 'Input tokens') }}</th><th>{{ t('رموز الإخراج', 'Output tokens') }}</th><th>{{ t('التكلفة', 'Cost') }}</th></tr></thead>
+    <tbody>
+      {% for m in by_model %}
+      <tr>
+        <td dir="ltr"><strong>{{ m.model }}</strong>{% if not m.priced %} <span class="tag">{{ t('بدون سعر', 'no price') }}</span>{% endif %}</td>
+        <td>{{ '{:,}'.format(m.calls) }}</td>
+        <td dir="ltr">{{ '{:,}'.format(m.prompt) }}</td>
+        <td dir="ltr">{{ '{:,}'.format(m.completion) }}</td>
+        <td dir="ltr"><strong>${{ '%.4f'|format(m.cost) }}</strong></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted" style="text-align:center; padding:24px">{{ t('لا يوجد استخدام مُسجَّل بعد.', 'No usage recorded yet.') }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── by operation ───────────────────────────────────────────────────── -->
+<h3 class="section-h">{{ t('حسب العملية', 'By operation') }}</h3>
+<div class="table-wrap mb-22">
+  <table class="data">
+    <thead><tr><th>{{ t('العملية', 'Operation') }}</th><th>{{ t('الطلبات', 'Requests') }}</th><th>{{ t('رموز الإدخال', 'Input tokens') }}</th><th>{{ t('رموز الإخراج', 'Output tokens') }}</th><th>{{ t('التكلفة', 'Cost') }}</th></tr></thead>
+    <tbody>
+      {% for o in by_op %}
+      <tr>
+        <td>{{ op_label(o.operation) }}</td>
+        <td>{{ '{:,}'.format(o.calls) }}</td>
+        <td dir="ltr">{{ '{:,}'.format(o.prompt) }}</td>
+        <td dir="ltr">{{ '{:,}'.format(o.completion) }}</td>
+        <td dir="ltr"><strong>${{ '%.4f'|format(o.cost) }}</strong></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted" style="text-align:center; padding:24px">{{ t('لا يوجد استخدام مُسجَّل بعد.', 'No usage recorded yet.') }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── per document ───────────────────────────────────────────────────── -->
+<h3 class="section-h">{{ t('تكلفة معالجة المستندات', 'Document processing cost') }}</h3>
+<div class="table-wrap mb-22">
+  <table class="data">
+    <thead><tr><th>{{ t('المستند', 'Document') }}</th><th>{{ t('النوع', 'Type') }}</th><th>{{ t('إجمالي الرموز', 'Total tokens') }}</th><th>{{ t('تكلفة المعالجة', 'Processing cost') }}</th></tr></thead>
+    <tbody>
+      {% for d in docs %}
+      <tr>
+        <td>{{ d.filename }}{% if d.estimated %} <span class="tag">{{ t('تقديري', 'estimated') }}</span>{% endif %}</td>
+        <td><span class="tag" dir="ltr">{{ d.file_type or '—' }}</span></td>
+        <td dir="ltr">{{ '{:,}'.format(d.prompt + d.completion) }}</td>
+        <td dir="ltr"><strong>${{ '%.4f'|format(d.cost) }}</strong></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted" style="text-align:center; padding:24px">{{ t('لم تُعالَج مستندات منذ بدء التتبّع.', 'No documents processed since tracking began.') }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── pricing editor (super admin) ───────────────────────────────────── -->
+<div class="card">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+    <h3 style="margin:0">{{ t('أسعار الرموز (دولار لكل مليون رمز)', 'Token prices (USD per million tokens)') }}</h3>
+    {% if can_edit %}
+    <form method="post" action="{{ url_for('admin.costs_refresh_prices') }}" style="margin:0">
+      {{ csrf_field() }}
+      <button class="btn btn-ghost btn-sm" type="submit">{{ icon('refresh') }} {{ t('تحديث من OpenRouter', 'Refresh from OpenRouter') }}</button>
+    </form>
+    {% endif %}
+  </div>
+  <p class="sub">{{ t('تُجلب تلقائياً من OpenRouter (نماذج المحادثة)؛ نموذج التضمين يُضبط يدوياً. السعر يُستخدم للتضمين والحاسبة والتقديرات التاريخية فقط — تكلفة المحادثة والقراءة فعلية.',
+      'Fetched automatically from OpenRouter (chat models); the embedding model is set manually. Prices are used only for embeddings, the calculator and historical estimates — chat and reading costs are actual.') }}</p>
+  {% if can_edit %}
+  <form method="post" action="{{ url_for('admin.costs_pricing') }}">
+      {{ csrf_field() }}
+    <table class="data bare" id="priceTable">
+      <thead><tr><th>{{ t('النموذج', 'Model') }}</th><th>{{ t('سعر الإدخال', 'Input price') }}</th><th>{{ t('سعر الإخراج', 'Output price') }}</th></tr></thead>
+      <tbody>
+        {% for model, p in pricing.items() %}
+        <tr>
+          <td><input type="text" name="model" value="{{ model }}" dir="ltr" style="min-width:240px" required></td>
+          <td><input type="number" name="input" value="{{ p.input }}" step="0.001" min="0" dir="ltr" style="max-width:130px"></td>
+          <td><input type="number" name="output" value="{{ p.output }}" step="0.001" min="0" dir="ltr" style="max-width:130px"></td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td><input type="text" name="model" placeholder="{{ t('إضافة نموذج جديد…', 'Add a new model…') }}" dir="ltr" style="min-width:240px"></td>
+          <td><input type="number" name="input" step="0.001" min="0" dir="ltr" style="max-width:130px"></td>
+          <td><input type="number" name="output" step="0.001" min="0" dir="ltr" style="max-width:130px"></td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="btn" type="submit" style="margin-top:12px">{{ t('حفظ الأسعار', 'Save prices') }}</button>
+  </form>
+  {% else %}
+  <table class="data bare">
+    <thead><tr><th>{{ t('النموذج', 'Model') }}</th><th>{{ t('سعر الإدخال', 'Input price') }}</th><th>{{ t('سعر الإخراج', 'Output price') }}</th></tr></thead>
+    <tbody>
+      {% for model, p in pricing.items() %}
+      <tr><td dir="ltr">{{ model }}</td><td dir="ltr">${{ p.input }}</td><td dir="ltr">${{ p.output }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:10px">{{ t('تعديل الأسعار متاح للمشرف الرئيسي فقط.', 'Editing prices is available to the super admin only.') }}</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+(function () {
+  var root = document.getElementById('tokCalc');
+  if (!root) return;
+  var EN = document.documentElement.lang === 'en';
+  var PRICING = {};
+  try { PRICING = JSON.parse(root.dataset.pricing || '{}'); } catch (e) {}
+  var mEl = document.getElementById('calcModel'),
+      inEl = document.getElementById('calcIn'),
+      outEl = document.getElementById('calcOut'),
+      txtEl = document.getElementById('calcText'),
+      estEl = document.getElementById('calcEst'),
+      rateEl = document.getElementById('calcRate'),
+      costEl = document.getElementById('calcCost');
+
+  function estimateTokens(t) {
+    if (!t) return 0;
+    var arabic = (t.match(/[؀-ۿݐ-ݿ]/g) || []).length;
+    var other = t.length - arabic;
+    return Math.round(arabic / 2 + other / 4);
+  }
+  function recalc() {
+    var pr = PRICING[mEl.value] || { input: 0, output: 0 };
+    var p = parseFloat(inEl.value) || 0, c = parseFloat(outEl.value) || 0;
+    var cost = p / 1e6 * pr.input + c / 1e6 * pr.output;
+    costEl.textContent = '$' + cost.toFixed(6);
+    rateEl.textContent = (EN ? 'in $' : 'إدخال $') + pr.input + ' · ' + (EN ? 'out $' : 'إخراج $') + pr.output + ' / 1M';
+  }
+  function showEst() {
+    var n = estimateTokens(txtEl.value).toLocaleString();
+    estEl.textContent = EN ? ('Estimate: ' + n + ' tokens') : ('التقدير: ' + n + ' رمز');
+  }
+
+  mEl.addEventListener('change', recalc);
+  inEl.addEventListener('input', recalc);
+  outEl.addEventListener('input', recalc);
+  txtEl.addEventListener('input', showEst);
+  document.getElementById('calcEstIn').addEventListener('click', function () {
+    inEl.value = estimateTokens(txtEl.value); recalc();
+  });
+  document.getElementById('calcEstOut').addEventListener('click', function () {
+    outEl.value = estimateTokens(txtEl.value); recalc();
+  });
+  recalc(); showEst();
+})();
+</script>
+{% endblock %}

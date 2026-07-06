@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block html_attrs %}lang="ar" dir="rtl"{% endblock %}
+{% block title %}مساعد الجامعة الأردنية{% endblock %}
+
+{% block head %}
+<script>
+  (function () {
+    var lang = localStorage.getItem('ju_lang') || 'ar';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+  })();
+  window.CHAT_LIMIT = {{ limit|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/marked.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/purify.min.js') }}" defer></script>
+{% endblock %}
+
+{% block body %}
+<div class="chat-app is-empty" id="app">
+  <header class="chat-top">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="">
+      <span>
+        <b data-i18n="brand">الجامعة الأردنية</b>
+        <span data-i18n="brandSub">المساعد الذكي للطلبة</span>
+      </span>
+    </div>
+    <div class="grow"></div>
+    <a class="reg-btn" href="https://ujapps.ju.edu.jo/regapp/login.xhtml" target="_blank"
+       rel="noopener" data-i18n="reg">بوابة التسجيل</a>
+    <button type="button" class="link-btn" id="newChat" data-i18n="newChat">محادثة جديدة</button>
+    <div class="lang-switch" role="group" aria-label="language">
+      <button type="button" data-lang="ar">العربية</button>
+      <button type="button" data-lang="en">English</button>
+    </div>
+  </header>
+
+  <main class="conversation" id="conversation">
+    <div class="conv-inner">
+      <section class="welcome">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="">
+        <h1 data-i18n="welcomeTitle">كيف يمكنني مساعدتك اليوم؟</h1>
+        <p data-i18n="welcomeSub">اسألني عن القبول، التسجيل، المواد، المواعيد، الرسوم، والحياة الجامعية في الجامعة الأردنية.</p>
+        <div class="suggest" id="suggest"></div>
+      </section>
+      <div id="messages"></div>
+    </div>
+  </main>
+
+  <div class="composer-wrap">
+    <form class="composer" id="form">
+      <textarea id="input" rows="1" data-i18n-ph="placeholder"
+                placeholder="اكتب رسالتك…" autocomplete="off"></textarea>
+      <div class="composer-tools">
+        <button type="button" class="web-toggle" id="styleToggle" aria-pressed="false"
+                data-i18n-title="styleTitle" title="إجابة مفصّلة">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 10h16"/><path d="M4 14h16"/><path d="M4 18h10"/></svg>
+          <span data-i18n="styleDetailed">مفصّل</span>
+        </button>
+        {% if web_available %}
+        <button type="button" class="web-toggle" id="webToggle" aria-pressed="false"
+                data-i18n-title="webTitle" title="ابحث في موقع الجامعة الرسمي لهذه الرسالة">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/>
+            <path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18"/></svg>
+          <span data-i18n="webBtn">بحث في الموقع</span>
+        </button>
+        {% endif %}
+        <button class="send" type="submit" id="send" aria-label="send" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg>
+        </button>
+      </div>
+    </form>
+    <div class="composer-foot">
+      <span data-i18n="disclaimer">قد تحتوي الإجابات على أخطاء؛ يُرجى التحقق من المصادر الرسمية.</span>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ asset('js/chat.js') }}"></script>
+{% endblock %}

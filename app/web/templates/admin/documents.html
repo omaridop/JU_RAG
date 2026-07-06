@@ -1,0 +1,129 @@
+{% extends "admin/base_admin.html" %}
+{% from "_icons.html" import icon %}
+{% from "_i18n.html" import t, status_label with context %}
+{% block admin_title %}{{ t('المستندات', 'Documents') }}{% endblock %}
+{% block page_title %}{{ t('المستندات', 'Documents') }}{% endblock %}
+{% block admin %}
+<div class="tabs" id="addTabs">
+  <button type="button" class="tab-btn active" data-tab="tab-file">{{ t('رفع ملف', 'Upload file') }}</button>
+  <button type="button" class="tab-btn" data-tab="tab-text">{{ t('كتابة نص', 'Type text') }}</button>
+</div>
+
+<div class="card mb-22 tab-pane" id="tab-file">
+  <h3>{{ t('رفع ملف إلى قاعدة المعرفة', 'Add a file to the knowledge base') }}</h3>
+  <p class="sub">
+    {{ t('ارفع ملف', 'Upload a') }} <strong>PDF</strong>{{ t('، أو', ',') }} <strong>Word</strong>{{ t('، أو', ' or') }}
+    <strong>{{ t('نص TXT', 'TXT') }}</strong>{{ t(': يقرأ النموذج الملف ويحوّله إلى أسئلة وأجوبة ثنائية اللغة، ثم يُضيفها إلى المخزن دون إعادة بناء ما هو موجود.',
+        ' file: the model reads it and turns it into bilingual Q&A, then adds it to the store without rebuilding what is already there.') }}
+    {{ t('أمّا ملف', 'A') }} <strong>{{ t('الأسئلة والأجوبة JSON', 'Q&A JSON') }}</strong>
+    {{ t('فيُضمَّن ويُخزَّن مباشرةً دون قراءته بالنموذج (لا تكلفة قراءة) — بشرط أن يتبع صيغة الأسئلة والأجوبة (مصفوفة',
+        ' file is embedded and stored directly without the reader model (no reading cost) — as long as it follows the Q&A schema (a') }}
+    <code>qa</code> {{ t('ثنائية اللغة أو مصفوفة', 'array or a') }} <code>qa_pairs</code>{{ t(').', ' array).') }}
+    {{ t('اختر', 'Pick the') }} <strong>{{ t('تاريخ السريان', 'effective date') }}</strong> {{ t('ليُفضَّل الأحدث عند البحث.', 'so newer content is preferred in search.') }}
+  </p>
+  <form method="post" action="{{ url_for('admin.upload') }}" enctype="multipart/form-data">
+      {{ csrf_field() }}
+    <div class="row">
+      <div class="field" style="flex:2; min-width:240px">
+        <label for="file">{{ t('الملف (PDF / Word / TXT / JSON)', 'File (PDF / Word / TXT / JSON)') }}</label>
+        <input type="file" id="file" name="file" accept=".pdf,.docx,.txt,.json" required>
+      </div>
+      <div class="field" style="flex:1; min-width:200px">
+        <label for="doc_date">{{ t('تاريخ السريان', 'Effective date') }} <span style="color:var(--danger)">*</span></label>
+        <input type="datetime-local" id="doc_date" name="doc_date" required>
+        <span class="hint">{{ t('القيمة الافتراضية هي الآن — غيّرها إلى تاريخ المستند الفعلي.', 'Defaults to now — change it to the document’s real date.') }}</span>
+      </div>
+      <div class="field" style="flex:1; min-width:200px">
+        <label for="source_label">{{ t('تسمية المصدر (اختياري)', 'Source label (optional)') }}</label>
+        <input type="text" id="source_label" name="source_label" placeholder="{{ t('مثال: دليل القبول 2026', 'e.g. Admissions Guide 2026') }}">
+      </div>
+    </div>
+    <button class="btn" type="submit">{{ icon('upload') }} {{ t('رفع ومعالجة', 'Upload & process') }}</button>
+  </form>
+</div>
+
+<div class="card mb-22 tab-pane" id="tab-text" style="display:none">
+  <h3>{{ t('كتابة نص مباشرةً', 'Type text directly') }}</h3>
+  <p class="sub">
+    {{ t('الصق أو اكتب أي معلومات (تعليمات، مواعيد، رسوم، إعلان…) وستُعالَج بنفس مسار قاعدة المعرفة: تحويل إلى أسئلة وأجوبة ثنائية اللغة، ثم تضمين وتخزين.',
+        'Paste or type any information (instructions, dates, fees, an announcement…). It goes through the same knowledge-base pipeline: turned into bilingual Q&A, then embedded and stored.') }}
+  </p>
+  <form method="post" action="{{ url_for('admin.paste_text') }}">
+      {{ csrf_field() }}
+    <div class="row">
+      <div class="field" style="flex:2; min-width:240px">
+        <label for="t_title">{{ t('العنوان', 'Title') }} <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="t_title" name="title" required
+               placeholder="{{ t('مثال: تعليمات التسجيل للفصل الصيفي 2026', 'e.g. Summer 2026 registration instructions') }}">
+      </div>
+      <div class="field" style="flex:1; min-width:200px">
+        <label for="t_date">{{ t('تاريخ السريان', 'Effective date') }} <span style="color:var(--danger)">*</span></label>
+        <input type="datetime-local" id="t_date" name="doc_date" required>
+        <span class="hint">{{ t('القيمة الافتراضية هي الآن.', 'Defaults to now.') }}</span>
+      </div>
+      <div class="field" style="flex:1; min-width:200px">
+        <label for="t_label">{{ t('تسمية المصدر (اختياري)', 'Source label (optional)') }}</label>
+        <input type="text" id="t_label" name="source_label" placeholder="{{ t('مثال: دائرة القبول والتسجيل', 'e.g. Admission & Registration Unit') }}">
+      </div>
+    </div>
+    <div class="field">
+      <label for="t_text">{{ t('النص', 'Text') }} <span style="color:var(--danger)">*</span></label>
+      <textarea id="t_text" name="text" rows="9" required minlength="20"
+                placeholder="{{ t('اكتب المحتوى هنا بالعربية أو الإنجليزية…', 'Write the content here, in Arabic or English…') }}"
+                style="width:100%; resize:vertical; font:inherit; padding:10px; border-radius:8px"></textarea>
+    </div>
+    <button class="btn" type="submit">{{ icon('plus') }} {{ t('إضافة ومعالجة', 'Add & process') }}</button>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table class="data" id="docsTable">
+    <thead>
+      <tr>
+        <th>{{ t('الملف', 'File') }}</th><th>{{ t('النوع', 'Type') }}</th><th>{{ t('المصدر', 'Source') }}</th><th>{{ t('تاريخ السريان', 'Effective date') }}</th>
+        <th>{{ t('تاريخ الإضافة', 'Added') }}</th><th>{{ t('الحالة', 'Status') }}</th><th>{{ t('مُفعّل', 'Active') }}</th><th>{{ t('السجلات', 'Records') }}</th><th>{{ t('إجراءات', 'Actions') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in documents %}
+      <tr data-id="{{ d.id }}"{% if not d.active %} class="inactive"{% endif %}>
+        <td><strong>{{ d.filename }}</strong>{% if d.lang %} <span class="tag">{{ d.lang }}</span>{% endif %}{% if d.department %} <span class="tag dept">{{ d.department }}</span>{% endif %}</td>
+        <td><span class="tag" dir="ltr">{{ d.file_type }}</span></td>
+        <td>{{ d.source_label or '—' }}</td>
+        <td>{{ d.doc_date | fmt_date(true) }}</td>
+        <td>{{ d.ingested_at | fmt_date(true) }}</td>
+        <td class="status-cell">
+          <span class="pill {{ d.status }}"><span class="dot"></span>{{ status_label(d.status) }}</span>
+          {% if d.status == 'error' and d.error %}<div class="muted" style="font-size:.74rem; margin-top:4px">{{ d.error }}</div>
+          {% elif d.progress and d.status not in ('done', 'skipped') %}<div class="muted" style="font-size:.74rem; margin-top:4px" dir="ltr">{{ d.progress }}</div>{% endif %}
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('admin.toggle_document', doc_id=d.id) }}" class="inline">
+            {{ csrf_field() }}
+            <label class="switch" title="{{ t('فعّل ليُستخدم في الإجابات؛ عطّل ليُتجاهل', 'On = used in answers; off = ignored') }}">
+              <input type="checkbox" {{ 'checked' if d.active }} onchange="this.form.submit()">
+            </label>
+          </form>
+        </td>
+        <td class="count-cell">{{ d.chunk_count }}</td>
+        <td>
+          <div class="acts">
+            <form class="inline" method="post" action="{{ url_for('admin.reingest', doc_id=d.id) }}">
+      {{ csrf_field() }}
+              <button class="icon-btn" type="submit" title="{{ t('إعادة المعالجة', 'Re-process') }}">{{ icon('refresh') }}</button>
+            </form>
+            <form class="inline" method="post" action="{{ url_for('admin.delete_document', doc_id=d.id) }}"
+                  data-confirm="{{ t('حذف «' ~ d.filename ~ '» وإزالة متجهاته؟', 'Delete “' ~ d.filename ~ '” and remove its vectors?') }}">
+      {{ csrf_field() }}
+              <button class="icon-btn danger" type="submit" title="{{ t('حذف', 'Delete') }}">{{ icon('trash') }}</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="muted" style="text-align:center; padding:30px">{{ t('لا توجد مستندات بعد. ارفع أول ملف من الأعلى.', 'No documents yet. Upload your first file above.') }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
