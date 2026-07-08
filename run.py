@@ -1,11 +1,3 @@
-"""Entry point for the University of Jordan RAG Assistant.
-
-    python run.py            # dev server on http://127.0.0.1:5000
-
-For production use a WSGI server, e.g.:
-    waitress-serve --listen=0.0.0.0:8000 run:app
-"""
-
 from __future__ import annotations
 
 import logging
