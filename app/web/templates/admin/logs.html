@@ -7,12 +7,12 @@
 <form class="card mb-22" method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end">
       {{ csrf_field() }}
   <div class="field" style="flex:2; min-width:220px; margin:0">
-    <label>{{ t('بحث', 'Search') }}</label>
-    <input type="search" name="q" value="{{ query }}" placeholder="{{ t('ابحث في الأسئلة والإجابات…', 'Search questions and answers…') }}">
+    <label for="log-query">{{ t('بحث', 'Search') }}</label>
+    <input id="log-query" type="search" name="q" value="{{ query }}" placeholder="{{ t('ابحث في الأسئلة والإجابات…', 'Search questions and answers…') }}">
   </div>
   <div class="field" style="flex:1; min-width:160px; margin:0">
-    <label>{{ t('المصدر', 'Source') }}</label>
-    <select name="filter">
+    <label for="log-filter">{{ t('المصدر', 'Source') }}</label>
+    <select id="log-filter" name="filter">
       <option value="" {{ 'selected' if served == '' }}>{{ t('الكل', 'All') }}</option>
       {% for opt in ['rag', 'memory', 'limit', 'error'] %}
         <option value="{{ opt }}" {{ 'selected' if served == opt }}>{{ served_label(opt) }}</option>

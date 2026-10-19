@@ -7,14 +7,20 @@
 {% block title %}{% block admin_title %}{{ t('لوحة التحكم', 'Dashboard') }}{% endblock %} — {{ t('الجامعة الأردنية', 'University of Jordan') }}{% endblock %}
 {% block body %}
 <div class="admin-shell">
+  <a class="skip-link" href="#admin-content">{{ t('انتقل إلى المحتوى', 'Skip to content') }}</a>
   <nav class="rail" aria-label="{{ t('التنقل', 'Navigation') }}">
-    <img class="logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="University of Jordan">
+    <div class="rail-brand">
+      <img class="logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="{{ t('الجامعة الأردنية', 'University of Jordan') }}">
+      <div><strong>{{ t('المساعد الجامعي', 'JU Assistant') }}</strong><small>{{ t('مساحة الإدارة', 'Admin workspace') }}</small></div>
+    </div>
+    <span class="nav-caption">{{ t('مساحة العمل', 'Workspace') }}</span>
     <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if ep == 'admin.dashboard' }}">{{ icon('home') }}<span>{{ t('الرئيسية', 'Home') }}</span></a>
     <a href="{{ url_for('admin.documents') }}" class="{{ 'active' if ep == 'admin.documents' }}">{{ icon('docs') }}<span>{{ t('المستندات', 'Documents') }}</span></a>
     <a href="{{ url_for('admin.logs') }}" class="{{ 'active' if ep == 'admin.logs' }}">{{ icon('chat') }}<span>{{ t('المحادثات', 'Chats') }}</span></a>
     <a href="{{ url_for('admin.analytics') }}" class="{{ 'active' if ep == 'admin.analytics' }}">{{ icon('chart') }}<span>{{ t('التحليلات', 'Analytics') }}</span></a>
     <a href="{{ url_for('admin.memory') }}" class="{{ 'active' if ep == 'admin.memory' }}">{{ icon('memory') }}<span>{{ t('الذاكرة', 'Memory') }}</span></a>
     <a href="{{ url_for('admin.costs') }}" class="{{ 'active' if ep == 'admin.costs' }}">{{ icon('coins') }}<span>{{ t('التكلفة', 'Cost') }}</span></a>
+    <span class="nav-caption">{{ t('الإدارة', 'Management') }}</span>
     <a href="{{ url_for('admin.settings_page') }}" class="{{ 'active' if ep == 'admin.settings_page' }}">{{ icon('settings') }}<span>{{ t('الإعدادات', 'Settings') }}</span></a>
     {% if current_admin and current_admin.role == 'super' %}
     <a href="{{ url_for('admin.admins') }}" class="{{ 'active' if ep == 'admin.admins' }}">{{ icon('users') }}<span>{{ t('المشرفون', 'Admins') }}</span></a>
@@ -35,11 +41,24 @@
       {% if current_admin %}
       <span class="who">{{ current_admin.username }}{% if current_admin.role == 'super' %} <span class="tag">{{ t('رئيسي', 'Super') }}</span>{% endif %}</span>
       {% endif %}
-      <a class="btn btn-ghost btn-sm" href="{{ url_for('chat.index') }}" target="_blank">{{ t('عرض الموقع', 'View site') }}</a>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('chat.index') }}" target="_blank" rel="noopener">{{ t('فتح المساعد', 'Open assistant') }}</a>
     </header>
-    <div class="admin-body">
+    <main class="admin-body" id="admin-content" tabindex="-1">
+      <div class="page-intro">
+        <span class="eyebrow">{{ t('الجامعة الأردنية / الإدارة', 'UNIVERSITY OF JORDAN / ADMINISTRATION') }}</span>
+        <h2>{{ self.page_title() }}</h2>
+        <p>{% if ep == 'admin.dashboard' %}{{ t('نظرة على المعرفة والمحادثات التي تدعم طلابك.', 'A clear view of the knowledge and conversations supporting your students.') }}
+        {% elif ep == 'admin.documents' %}{{ t('أضف المصادر وحدّثها، وتحكّم بما يستخدمه المساعد في إجاباته.', 'Add sources, keep them current, and choose what the assistant uses in its answers.') }}
+        {% elif ep == 'admin.settings_page' %}{{ t('اضبط تجربة الطلاب، وحدود الاستخدام، وأمان حسابك.', 'Manage the student experience, usage limits, and your account security.') }}
+        {% elif ep == 'admin.logs' %}{{ t('راجع الإجابات ومصادرها، واحفظ المفيد منها في الذاكرة.', 'Review answers and their sources. Save useful responses to memory.') }}
+        {% elif ep == 'admin.memory' %}{{ t('إجابات راجعتها واعتمدتها للاستخدام مرة أخرى.', 'Answers you have reviewed and approved for reuse.') }}
+        {% elif ep == 'admin.costs' %}{{ t('تابع الإنفاق والاستهلاك واضبط ميزانية المساعد.', 'Understand spending and usage, and manage the assistant’s budget.') }}
+        {% elif ep == 'admin.analytics' %}{{ t('افهم احتياجات الطلاب وحدّد فرص تحسين قاعدة المعرفة.', 'Understand student needs and find opportunities to improve the knowledge base.') }}
+        {% elif ep == 'admin.admins' %}{{ t('نظّم الفريق والأقسام والصلاحيات.', 'Manage your team, departments, and access.') }}
+        {% else %}{{ t('تابع التغييرات والإجراءات المسجّلة في مساحة الإدارة.', 'Review changes and recorded actions across your workspace.') }}{% endif %}</p>
+      </div>
       {% block admin %}{% endblock %}
-    </div>
+    </main>
   </div>
 </div>
 {% endblock %}

@@ -1,68 +1,61 @@
 {% extends "admin/base_admin.html" %}
+{% from "_icons.html" import icon %}
 {% from "_i18n.html" import t with context %}
 {% block admin_title %}{{ t('الإعدادات', 'Settings') }}{% endblock %}
 {% block page_title %}{{ t('الإعدادات', 'Settings') }}{% endblock %}
 {% block admin %}
-<div class="row mb-22">
-  <div class="card" style="flex:1; min-width:300px">
-    <h3>{{ t('حدّ المحادثة', 'Chat limit') }}</h3>
-    <p class="sub">{{ t('أقصى عدد رسائل لكل جلسة طالب — للتحكم في استهلاك الرموز.', 'Maximum messages per student session — to control token spend.') }}</p>
-    <form method="post" action="{{ url_for('admin.settings_save') }}">
-      {{ csrf_field() }}
-      <div class="field">
-        <label for="chat_limit">{{ t('الرسائل لكل جلسة', 'Messages per session') }}</label>
-        <input type="number" id="chat_limit" name="chat_limit" min="1" max="100000" value="{{ chat_limit }}" required dir="ltr">
-      </div>
-      <button class="btn" type="submit">{{ t('حفظ الحدّ', 'Save limit') }}</button>
-    </form>
+<div class="settings-layout">
+  <div class="settings-stack">
+    <section class="card">
+      <div class="settings-section-label">{{ icon('chat') }}<h3>{{ t('حدّ المحادثة', 'Conversation limit') }}</h3></div>
+      <p class="sub" id="limit-help">{{ t('حدّد عدد الرسائل المتاحة لكل جلسة طالب للتحكم في الاستخدام.', 'Set the number of messages available per student session to manage usage.') }}</p>
+      <form method="post" action="{{ url_for('admin.settings_save') }}">
+        {{ csrf_field() }}
+        <div class="field">
+          <label for="chat_limit">{{ t('الرسائل لكل جلسة', 'Messages per session') }}</label>
+          <input type="number" id="chat_limit" name="chat_limit" min="1" max="100000" value="{{ chat_limit }}" required dir="ltr" aria-describedby="limit-help">
+        </div>
+        <button class="btn" type="submit">{{ t('حفظ الحدّ', 'Save limit') }}</button>
+      </form>
+    </section>
+    <section class="card">
+      <div class="settings-section-label">{{ icon('search') }}<h3>{{ t('البحث في موقع الجامعة', 'University website search') }}</h3></div>
+      <p class="sub" id="search-help">{{ t('اسمح للمساعد بالاستعانة بالموقع الرسمي مع إرفاق المصادر. يستطيع الطالب طلب البحث، وقد يستخدمه المساعد تلقائياً عند عدم توفر إجابة كافية في قاعدة المعرفة، إذا كان البحث التلقائي مفعّلاً.', 'Allow the assistant to consult the official website and cite its sources. Students can request a search; when automatic fallback is enabled, the assistant can also search if the knowledge base cannot answer.') }}</p>
+      <p class="sub"><span class="tag" dir="ltr">{{ cfg.WEB_SEARCH_DOMAIN }}</span></p>
+      <form method="post" action="{{ url_for('admin.settings_web_search') }}" class="setting-control">
+        {{ csrf_field() }}
+        <div><label class="switch">
+          <input type="checkbox" name="web_search_enabled" {{ 'checked' if web_on }} aria-describedby="search-help" onchange="this.form.submit()">
+          <span>{{ t('مُفعّل', 'Enabled') if web_on else t('مُعطّل', 'Disabled') }}</span>
+        </label><p>{{ t('يُحفظ التغيير تلقائياً.', 'Changes save automatically.') }}</p></div>
+        <span class="muted" style="font-size:.8rem">{{ t('قد تترتب تكلفة إضافية', 'Additional usage costs may apply') }}</span>
+      </form>
+    </section>
   </div>
-
-  <div class="card" style="flex:1; min-width:300px">
-    <h3>{{ t('تغيير كلمة المرور', 'Change password') }}</h3>
+  <section class="card">
+    <div class="settings-section-label">{{ icon('settings') }}<h3>{{ t('أمان الحساب', 'Account security') }}</h3></div>
+    <p class="sub">{{ t('غيّر كلمة المرور المستخدمة للدخول إلى حسابك.', 'Update the password you use to sign in to your account.') }}</p>
     <form method="post" action="{{ url_for('admin.change_password') }}">
       {{ csrf_field() }}
-      <div class="field"><label>{{ t('كلمة المرور الحالية', 'Current password') }}</label><input type="password" name="current_password" required autocomplete="current-password"></div>
-      <div class="field"><label>{{ t('كلمة المرور الجديدة', 'New password') }}</label><input type="password" name="new_password" minlength="6" required autocomplete="new-password"></div>
-      <button class="btn" type="submit">{{ t('تحديث كلمة المرور', 'Update password') }}</button>
+      <div class="field"><label for="current_password">{{ t('كلمة المرور الحالية', 'Current password') }}</label><input id="current_password" type="password" name="current_password" required autocomplete="current-password"></div>
+      <div class="field"><label for="new_password">{{ t('كلمة المرور الجديدة', 'New password') }}</label><input id="new_password" type="password" name="new_password" minlength="6" required autocomplete="new-password" aria-describedby="password-help"><span class="hint" id="password-help">{{ t('ستة أحرف على الأقل. استخدم كلمة مرور فريدة لهذا الحساب.', 'At least six characters. Use a password unique to this account.') }}</span></div>
+      <button class="btn btn-ghost" type="submit">{{ t('تحديث كلمة المرور', 'Update password') }}</button>
     </form>
-  </div>
+  </section>
 </div>
-
-<div class="card mb-22">
-  <h3>{{ t('إتاحة البحث في موقع الجامعة (وكيل ذكي)', 'University website search (AI agent)') }}</h3>
-  <p class="sub">
-    {{ t('عند التفعيل، يظهر للطالب زرّ', 'When enabled, students see a') }} <strong>{{ t('«بحث في الموقع»', '“Search site”') }}</strong>
-    {{ t('في صندوق المحادثة يُمكّنه من تفعيل البحث المباشر في الموقع الرسمي',
-        'button in the composer that lets them run a live search of the official site') }}
-    <strong dir="ltr">{{ cfg.WEB_SEARCH_DOMAIN }}</strong> <strong>{{ t('لرسالته فقط', 'for that message only') }}</strong>
-    {{ t('(مثل مواعيد التقويم، الأخبار، أرقام التواصل) مع الاستشهاد بروابط الصفحات الرسمية. هذا المفتاح يتحكم في',
-        '(calendar dates, news, contact numbers) and cites the official page links. This switch controls only') }}
-    <strong>{{ t('إتاحة الميزة للطلبة', 'whether the feature is available to students') }}</strong>{{ t('؛ والطالب يختار تفعيلها لكل رسالة.', '; the student opts in per message.') }}
-    {{ t('مزوّد البحث الحالي:', 'Current search provider:') }} <strong dir="ltr">{{ 'Tavily' if cfg.TAVILY_API_KEY else 'OpenRouter web' }}</strong>
-    {{ t('(أضف', '(add') }} <code dir="ltr">TAVILY_API_KEY</code> {{ t('لأعلى دقة). يستهلك رموزاً/رصيداً إضافياً لكل بحث.', 'for best accuracy). Each search uses extra tokens/credit.') }}
-  </p>
-  <form method="post" action="{{ url_for('admin.settings_web_search') }}">
-    {{ csrf_field() }}
-    <label class="switch">
-      <input type="checkbox" name="web_search_enabled" {{ 'checked' if web_on }}
-             onchange="this.form.submit()">
-      <span>{{ (t('مُفعّل', 'Enabled') if web_on else t('مُعطّل', 'Disabled')) }}</span>
-    </label>
-  </form>
-</div>
-
-<div class="card">
-  <h3>{{ t('إعدادات التشغيل', 'Runtime settings') }}</h3>
-  <p class="sub">{{ t('تُضبط من ملف', 'Configured from') }} <code>.env</code> {{ t('(للعرض فقط هنا).', '(read-only here).') }}</p>
-  <table class="data bare">
+<details class="card runtime-details">
+  <summary>{{ t('إعدادات التشغيل المتقدمة', 'Advanced runtime settings') }} <span class="tag">{{ t('للقراءة فقط', 'Read only') }}</span></summary>
+  <p class="sub">{{ t('تُضبط هذه القيم من ملف', 'These values are configured in') }} <code>.env</code>.</p>
+  <div class="table-wrap"><table class="data bare">
     <tr><th>{{ t('نموذج المحادثة', 'Chat model') }}</th><td><span class="tag" dir="ltr">{{ cfg.CHAT_MODEL }}</span></td></tr>
     <tr><th>{{ t('نموذج قراءة المستندات', 'Document reader') }}</th><td><span class="tag" dir="ltr">{{ cfg.CHUNK_MODEL }}</span></td></tr>
     <tr><th>{{ t('استراتيجية المعالجة', 'Ingest strategy') }}</th><td>{{ cfg.INGEST_STRATEGY }}{% if cfg.INGEST_STRATEGY == 'qa' %} — {{ cfg.QA_VARIANTS }} {{ t('صِيَغ لكل سؤال في كل لغة', 'paraphrases per question, per language') }}{% endif %}</td></tr>
-    <tr><th>{{ t('قراءة PDF', 'PDF reading') }}</th><td>{{ cfg.PDF_INGEST_MODE }} ({{ t('المحرّك:', 'engine:') }} {{ cfg.PDF_ENGINE }})</td></tr>
+    <tr><th>{{ t('قراءة PDF', 'PDF reading') }}</th><td>{{ cfg.PDF_INGEST_MODE }} ({{ cfg.PDF_ENGINE }})</td></tr>
     <tr><th>{{ t('نموذج التضمين', 'Embedding model') }}</th><td><span class="tag" dir="ltr">{{ cfg.EMBED_MODEL }}</span></td></tr>
-    <tr><th>{{ t('عدد المقاطع المسترجَعة', 'Retrieved passages') }}</th><td dir="ltr">{{ cfg.TOP_K }}</td></tr>
-    <tr><th>{{ t('وزن الحداثة', 'Recency weight') }}</th><td dir="ltr">{{ cfg.RECENCY_WEIGHT }} ({{ t('نصف العمر', 'half-life') }} {{ cfg.RECENCY_HALFLIFE_DAYS|int }} {{ t('يوم', 'days') }})</td></tr>
-    <tr><th>{{ t('عتبة مطابقة الذاكرة', 'Memory match threshold') }}</th><td dir="ltr">{{ cfg.MEMORY_SIM_THRESHOLD }}</td></tr>
-  </table>
-</div>
+    <tr><th>{{ t('عدد المقاطع المسترجَعة', 'Retrieved passages') }}</th><td>{{ cfg.TOP_K }}</td></tr>
+    <tr><th>{{ t('وزن الحداثة', 'Recency weight') }}</th><td>{{ cfg.RECENCY_WEIGHT }} ({{ t('نصف العمر', 'half-life') }} {{ cfg.RECENCY_HALFLIFE_DAYS|int }} {{ t('يوم', 'days') }})</td></tr>
+    <tr><th>{{ t('عتبة مطابقة الذاكرة', 'Memory match threshold') }}</th><td>{{ cfg.MEMORY_SIM_THRESHOLD }}</td></tr>
+    <tr><th>{{ t('مزوّد البحث', 'Search provider') }}</th><td>{{ cfg.WEB_SEARCH_PROVIDER }}</td></tr>
+  </table></div>
+</details>
 {% endblock %}

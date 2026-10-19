@@ -14,12 +14,12 @@
   <form method="post" action="{{ url_for('admin.memory_add') }}">
       {{ csrf_field() }}
     <div class="field">
-      <label>{{ t('السؤال', 'Question') }}</label>
-      <input type="text" name="question" required placeholder="{{ t('مثال: ما هي ساعات عمل دائرة التسجيل؟', 'e.g. What are the Registration Unit’s working hours?') }}">
+      <label for="new-memory-question">{{ t('السؤال', 'Question') }}</label>
+      <input id="new-memory-question" type="text" name="question" required placeholder="{{ t('مثال: ما هي ساعات عمل دائرة التسجيل؟', 'e.g. What are the Registration Unit’s working hours?') }}">
     </div>
     <div class="field">
-      <label>{{ t('الإجابة', 'Answer') }}</label>
-      <textarea name="answer" required placeholder="{{ t('الإجابة التي ستُعاد كما هي…', 'The answer to return verbatim…') }}"></textarea>
+      <label for="new-memory-answer">{{ t('الإجابة', 'Answer') }}</label>
+      <textarea id="new-memory-answer" name="answer" required placeholder="{{ t('الإجابة التي ستُعاد كما هي…', 'The answer to return verbatim…') }}"></textarea>
     </div>
     <button class="btn" type="submit">{{ icon('plus') }} {{ t('إضافة إلى الذاكرة', 'Add to memory') }}</button>
   </form>
@@ -64,8 +64,8 @@
   <form class="modal" method="post" id="memEditForm">
       {{ csrf_field() }}
     <h3>{{ t('تعديل المدخل', 'Edit entry') }}</h3>
-    <div class="field"><label>{{ t('السؤال', 'Question') }}</label><input type="text" name="question" id="memQ" required></div>
-    <div class="field"><label>{{ t('الإجابة', 'Answer') }}</label><textarea name="answer" id="memA" required></textarea></div>
+    <div class="field"><label for="memQ">{{ t('السؤال', 'Question') }}</label><input type="text" name="question" id="memQ" required></div>
+    <div class="field"><label for="memA">{{ t('الإجابة', 'Answer') }}</label><textarea name="answer" id="memA" required></textarea></div>
     <div class="actions">
       <button class="btn" type="submit">{{ t('حفظ التغييرات', 'Save changes') }}</button>
       <button class="btn btn-ghost" type="button" data-close-modal>{{ t('إلغاء', 'Cancel') }}</button>

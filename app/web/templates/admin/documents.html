@@ -76,7 +76,11 @@
   </form>
 </div>
 
-<div class="table-wrap">
+<div class="document-toolbar">
+  <div><h3>{{ t('مكتبة المستندات', 'Document library') }}</h3><span class="muted" id="doc-count" role="status" aria-live="polite">{{ documents|length }} {{ t('مستند', 'documents') }}</span></div>
+  <div class="field"><label for="doc-search">{{ t('البحث في المستندات', 'Find a document') }}</label><input id="doc-search" type="search" placeholder="{{ t('اسم الملف أو المصدر…', 'File name or source…') }}" aria-controls="docsTable"></div>
+</div>
+<div class="table-wrap" tabindex="0" role="region" aria-label="{{ t('مكتبة المستندات', 'Document library') }}">
   <table class="data" id="docsTable">
     <thead>
       <tr>
@@ -101,7 +105,7 @@
           <form method="post" action="{{ url_for('admin.toggle_document', doc_id=d.id) }}" class="inline">
             {{ csrf_field() }}
             <label class="switch" title="{{ t('فعّل ليُستخدم في الإجابات؛ عطّل ليُتجاهل', 'On = used in answers; off = ignored') }}">
-              <input type="checkbox" {{ 'checked' if d.active }} onchange="this.form.submit()">
+              <input type="checkbox" aria-label="{{ t('تفعيل المستند', 'Activate document') }}: {{ d.filename }}" {{ 'checked' if d.active }} onchange="this.form.submit()">
             </label>
           </form>
         </td>

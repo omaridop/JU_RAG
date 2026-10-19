@@ -1,39 +1,46 @@
 {% extends "admin/base_admin.html" %}
+{% from "_icons.html" import icon %}
 {% from "_i18n.html" import t with context %}
-{% block admin_title %}{{ t('الرئيسية', 'Home') }}{% endblock %}
-{% block page_title %}{{ t('الرئيسية', 'Home') }}{% endblock %}
+{% block admin_title %}{{ t('نظرة عامة', 'Overview') }}{% endblock %}
+{% block page_title %}{{ t('نظرة عامة', 'Overview') }}{% endblock %}
 {% block admin %}
-<div class="stats mb-22">
-  <div class="stat b"><div class="v">{{ stats.vectors }}</div><div class="k">{{ t('المتجهات المخزّنة', 'Stored vectors') }}</div></div>
-  <div class="stat"><div class="v">{{ stats.documents }}</div><div class="k">{{ t('المستندات', 'Documents') }}</div></div>
-  <div class="stat"><div class="v">{{ stats.doc_chunks }}</div><div class="k">{{ t('سجلات من المستندات', 'Document records') }}</div></div>
-  <div class="stat"><div class="v">{{ stats.qa_files }}</div><div class="k">{{ t('ملفات أسئلة وأجوبة', 'Q&A files') }}</div></div>
-  <div class="stat"><div class="v">{{ stats.qa_pairs }}</div><div class="k">{{ t('أزواج أسئلة وأجوبة', 'Q&A pairs') }}</div></div>
-  <div class="stat b"><div class="v">{{ stats.memory_entries }}</div><div class="k">{{ t('مدخلات الذاكرة', 'Memory entries') }}</div></div>
-  <div class="stat"><div class="v">{{ stats.chats_total }}</div><div class="k">{{ t('إجمالي المحادثات', 'Total chats') }}</div></div>
+<div class="stats stats-primary mb-22">
   <div class="stat"><div class="v">{{ stats.chats_today }}</div><div class="k">{{ t('محادثات اليوم', 'Chats today') }}</div></div>
-  <div class="stat b"><div class="v">{{ stats.chats_from_memory }}</div><div class="k">{{ t('أُجيبت من الذاكرة', 'Answered from memory') }}</div></div>
-  <div class="stat"><div class="v">{{ stats.sessions }}</div><div class="k">{{ t('الجلسات', 'Sessions') }}</div></div>
+  <div class="stat"><div class="v">{{ stats.chats_total }}</div><div class="k">{{ t('إجمالي المحادثات', 'Total chats') }}</div></div>
+  <div class="stat"><div class="v">{{ stats.documents }}</div><div class="k">{{ t('المستندات', 'Documents') }}</div></div>
+  <div class="stat"><div class="v">{{ stats.memory_entries }}</div><div class="k">{{ t('إجابات معتمدة في الذاكرة', 'Approved memory answers') }}</div></div>
 </div>
-
 <div class="row">
-  <div class="card" style="flex:1; min-width:280px">
-    <h3>{{ t('منظومة المعالجة', 'Processing pipeline') }}</h3>
-    <p class="sub">{{ t('كل العمليات تعمل عبر مفتاح OpenRouter واحد.', 'Everything runs through a single OpenRouter key.') }}</p>
-    <table class="data bare">
-      <tr><th>{{ t('نموذج المحادثة', 'Chat model') }}</th><td><span class="tag" dir="ltr">{{ chat_model }}</span></td></tr>
-      <tr><th>{{ t('نموذج قراءة المستندات', 'Document reader') }}</th><td><span class="tag" dir="ltr">{{ chunk_model }}</span></td></tr>
-      <tr><th>{{ t('نموذج التضمين', 'Embedding model') }}</th><td><span class="tag" dir="ltr">{{ embed_model }}</span></td></tr>
-    </table>
-  </div>
-  <div class="card" style="flex:1; min-width:280px">
-    <h3>{{ t('إجراءات سريعة', 'Quick actions') }}</h3>
-    <div class="acts" style="margin-top:10px; flex-wrap:wrap">
-      <a class="btn btn-ghost" href="{{ url_for('admin.documents') }}">{{ t('إدارة المستندات', 'Manage documents') }}</a>
-      <a class="btn btn-ghost" href="{{ url_for('admin.logs') }}">{{ t('سجل المحادثات', 'Chat history') }}</a>
-      <a class="btn btn-ghost" href="{{ url_for('admin.memory') }}">{{ t('الذاكرة', 'Memory') }}</a>
-      <a class="btn btn-ghost" href="{{ url_for('admin.settings_page') }}">{{ t('الإعدادات', 'Settings') }}</a>
+  <section class="card" style="flex:1; min-width:280px">
+    <h3>{{ t('إدارة المعرفة', 'Manage your knowledge') }}</h3>
+    <div class="quick-actions">
+      <a href="{{ url_for('admin.documents') }}">{{ icon('docs') }}<span><strong>{{ t('إدارة المستندات', 'Manage documents') }}</strong><small>{{ t('أضف مصادر جديدة أو حدّث المصادر الحالية.', 'Add new sources or update existing material.') }}</small></span></a>
+      <a href="{{ url_for('admin.logs') }}">{{ icon('chat') }}<span><strong>{{ t('مراجعة المحادثات', 'Review conversations') }}</strong><small>{{ t('اطّلع على أسئلة الطلاب وجودة الإجابات.', 'See what students ask and review answer quality.') }}</small></span></a>
+      <a href="{{ url_for('admin.memory') }}">{{ icon('memory') }}<span><strong>{{ t('الإجابات المعتمدة', 'Approved answers') }}</strong><small>{{ t('راجع الإجابات المحفوظة لإعادة استخدامها.', 'Curate saved answers for reuse.') }}</small></span></a>
     </div>
-  </div>
+  </section>
+  <section class="card" style="flex:1; min-width:280px">
+    <h3>{{ t('منظومة المعالجة', 'Processing pipeline') }}</h3>
+    <p class="sub">{{ t('النماذج التي تقرأ مصادر المعرفة وتُجيب الطلاب.', 'The models that read your sources and answer students.') }}</p>
+    <table class="data bare">
+      <tr><th>{{ t('المحادثة', 'Conversation') }}</th><td><span class="tag" dir="ltr">{{ chat_model }}</span></td></tr>
+      <tr><th>{{ t('قراءة المستندات', 'Document reading') }}</th><td><span class="tag" dir="ltr">{{ chunk_model }}</span></td></tr>
+      <tr><th>{{ t('التضمين', 'Embeddings') }}</th><td><span class="tag" dir="ltr">{{ embed_model }}</span></td></tr>
+    </table>
+    <a class="btn btn-ghost btn-sm" style="margin-top:20px" href="{{ url_for('admin.settings_page') }}">{{ t('إعدادات المساعد', 'Assistant settings') }}</a>
+  </section>
+</div>
+<h3 class="section-label">{{ t('تفاصيل قاعدة المعرفة والاستخدام', 'Knowledge base & usage details') }}</h3>
+<div class="stats">
+  {% for value, ar, en in [
+    (stats.vectors, 'المتجهات المخزّنة', 'Stored vectors'),
+    (stats.doc_chunks, 'سجلات المستندات', 'Document records'),
+    (stats.qa_files, 'ملفات أسئلة وأجوبة', 'Q&A files'),
+    (stats.qa_pairs, 'أزواج أسئلة وأجوبة', 'Q&A pairs'),
+    (stats.chats_from_memory, 'أُجيبت من الذاكرة', 'Answered from memory'),
+    (stats.sessions, 'الجلسات', 'Sessions')
+  ] %}
+  <div class="stat"><div class="v">{{ value }}</div><div class="k">{{ t(ar, en) }}</div></div>
+  {% endfor %}
 </div>
 {% endblock %}

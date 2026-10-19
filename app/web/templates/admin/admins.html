@@ -92,7 +92,7 @@
           {% else %}
           <form class="inline" method="post" action="{{ url_for('admin.admin_set_department', admin_id=a.id) }}">
       {{ csrf_field() }}
-            <select name="department" onchange="this.form.submit()" style="max-width:200px; min-width:140px">
+            <select name="department" aria-label="{{ t('القسم', 'Department') }}" onchange="this.form.submit()" style="max-width:200px; min-width:140px">
               <option value="">{{ t('بلا قسم', 'No department') }}</option>
               {% if a.department and a.department not in dept_names %}
               <option value="{{ a.department }}" selected>{{ a.department }} ({{ t('غير مُدار', 'unmanaged') }})</option>
@@ -110,7 +110,7 @@
             <form class="inline" method="post" style="display:flex; gap:6px"
                   action="{{ url_for('admin.admin_reset_password', admin_id=a.id) }}">
       {{ csrf_field() }}
-              <input type="password" name="new_password" minlength="8" required dir="ltr"
+              <input type="password" name="new_password" aria-label="{{ t('كلمة المرور الجديدة', 'New password') }}" minlength="8" required dir="ltr"
                      placeholder="{{ t('كلمة مرور جديدة', 'New password') }}" style="max-width:170px" autocomplete="new-password">
               <button class="icon-btn" type="submit" title="{{ t('تغيير كلمة المرور', 'Reset password') }}">{{ icon('settings') }}</button>
             </form>

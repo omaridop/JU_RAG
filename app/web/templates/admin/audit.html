@@ -6,8 +6,8 @@
 {% block admin %}
 <form class="card mb-22" method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end">
   <div class="field" style="flex:1; min-width:180px; margin:0">
-    <label>{{ t('المشرف', 'Admin') }}</label>
-    <select name="user" dir="ltr">
+    <label for="audit-user">{{ t('المشرف', 'Admin') }}</label>
+    <select id="audit-user" name="user" dir="ltr">
       <option value="" {{ 'selected' if user == '' }}>{{ t('الكل', 'All') }}</option>
       {% for u in usernames %}
         <option value="{{ u }}" {{ 'selected' if user == u }}>{{ u }}</option>
