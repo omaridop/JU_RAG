@@ -36,6 +36,13 @@ Completed RAG, memory, and web answers have a bilingual Listen button. It uses
 `4wf10lgibMnboGJGCLrP` through the existing OpenRouter key. Voice availability
 was verified with a real MP3 request; accent quality still needs human review.
 The original answer wording is retained, without Markdown or URL targets.
+Before Arabic narration, DeepSeek (configurable via `TTS_DIACRITICS_MODEL`,
+defaulting to `CHAT_MODEL`) adds natural pronunciation diacritics to the spoken
+copy only. The displayed answer is unchanged. A strict comparison rejects any
+changed words, numbers or punctuation; timeout, truncation or invalid output
+falls back to the original text. English-only answers skip this step. Its token
+cost is recorded separately as Speech diacritics. Cached replays skip both calls.
+This may improve pronunciation, but is not a guarantee of a particular accent.
 
 Audio is generated only on a click. `/api/speech` accepts a saved `log_id`, not
 arbitrary text, and checks session ownership. Replies are sent to OpenRouter
@@ -52,7 +59,7 @@ the token-price calculator is not a speech calculator.
 The process keeps a 32 MiB, 30-minute audio cache; each browser retains up to
 five clips until a new chat or page exit. No audio files are persisted to disk.
 One synthesis request runs at a time, with rate limiting and a 60-second
-upstream timeout. Answers over the model's 10,000-character limit are rejected
+speech timeout (plus up to 20 seconds for diacritics). Answers over the model's 10,000-character limit are rejected
 with an explicit message rather than silently truncated. The budget check is
 best-effort alongside concurrent text requests, not a provider-side hard cap.
 

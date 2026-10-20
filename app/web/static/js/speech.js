@@ -52,7 +52,7 @@
       if (!item.audio) {
         item.state = "loading"; render(item);
         const controller = new AbortController(); item.controller = controller;
-        const timeout = setTimeout(() => controller.abort(), 75000);
+        const timeout = setTimeout(() => controller.abort(), 95000);
         let blob;
         try {
           const res = await fetch("/api/speech", { method: "POST", headers: { "Content-Type": "application/json" },

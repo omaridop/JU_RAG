@@ -1,6 +1,7 @@
 """Offline speech tests: no real database, vector store, or provider calls."""
 import httpx
 import pytest
+from types import SimpleNamespace
 from flask import Flask
 
 from app.chatbot import speech
@@ -121,3 +122,63 @@ def test_rate_limit(api, monkeypatch, speech_env):
 def test_feature_switch(api, monkeypatch):
     monkeypatch.setattr(chat.settings, "TTS_ENABLED", False)
     assert api.post("/api/speech", json={"log_id": 7}).status_code == 503
+
+
+def fake_diacritics(monkeypatch, output, finish="stop"):
+    calls = []
+    def create(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(choices=[SimpleNamespace(
+            message=SimpleNamespace(content=output), finish_reason=finish)],
+            usage={"prompt_tokens": 100, "completion_tokens": 20, "cost": 0.0001})
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    client.with_options = lambda **kwargs: client
+    monkeypatch.setattr(speech, "get_client", lambda: client)
+    return calls
+
+
+def test_diacritics_before_audio_and_cached(speech_env, monkeypatch):
+    output = "مَرْحَباً بِكُمْ في الجامعة."
+    preparation = fake_diacritics(monkeypatch, output)
+    speech.generate("مرحباً بكم في الجامعة.", "owner")
+    speech.generate("مرحباً بكم في الجامعة.", "owner")
+    calls, usage = speech_env
+    assert len(preparation) == len(calls) == 1
+    assert calls[0]["json"]["input"] == output
+    assert [entry["operation"] for entry in usage] == ["speech_diacritics", "speech"]
+    assert usage[0]["session_token"] == "owner"
+    assert usage[1]["cost_usd"] == pytest.approx(len(output) * 0.00004)
+
+
+@pytest.mark.parametrize("output,finish", [
+    ("أهلاً بكم في الجامعة.", "stop"),  # paraphrase
+    ("مَرْحَباً", "length"),  # truncated
+    ("مرحباً بكم في الجامعة. شرح إضافي", "stop"),
+    ("", "stop"),
+    ("الرُّسومُ 50 ديناراً.", "stop"),  # changed number / content
+])
+def test_unsafe_diacritics_fall_back(speech_env, monkeypatch, output, finish):
+    fake_diacritics(monkeypatch, output, finish)
+    original = "مرحباً بكم في الجامعة."
+    speech.generate(original, "owner")
+    assert speech_env[0][0]["json"]["input"] == original
+
+
+def test_english_skips_diacritics(speech_env, monkeypatch):
+    preparation = fake_diacritics(monkeypatch, "unexpected")
+    speech.generate("Hello students", "owner")
+    assert not preparation
+
+
+def test_diacritics_timeout_falls_back(speech_env, monkeypatch):
+    def unavailable():
+        raise httpx.ReadTimeout("timeout")
+    monkeypatch.setattr(speech, "get_client", unavailable)
+    speech.generate("مرحبا", "owner")
+    assert speech_env[0][0]["json"]["input"] == "مرحبا"
+
+
+def test_diacritics_preserve_mixed_text_and_numbers(speech_env, monkeypatch):
+    result = "رُسومُ IT هي 42 ديناراً."
+    fake_diacritics(monkeypatch, result)
+    assert speech.diacritize("رسوم IT هي 42 ديناراً.", "owner") == result
