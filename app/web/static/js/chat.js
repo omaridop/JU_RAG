@@ -172,12 +172,15 @@
     const a = addMessage("assistant");
     a.body.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
 
-    let buf = "", first = true;
+    let buf = "", first = true, completed = false;
     try {
       const res = await fetch("/api/chat/stream", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, web_search: webSearch, answer_style: answerStyle })
       });
+      if (!res.ok || !res.body || !res.headers.get("Content-Type")?.includes("text/event-stream")) {
+        throw new Error("Chat stream unavailable");
+      }
       const reader = res.body.getReader(); const dec = new TextDecoder(); let acc = "";
       while (true) {
         const { value, done } = await reader.read(); if (done) break;
@@ -190,10 +193,11 @@
           if (ev.type === "status") { showSearching(a.body, ev.query); first = true; scrollDown(); }
           else if (ev.type === "reset") { buf = ""; first = true; }
           else if (ev.type === "delta") { if (first) { a.body.innerHTML = ""; first = false; } buf += ev.text; setBody(a.body, buf, true); scrollDown(); }
-          else if (ev.type === "done") { if (first) { setBody(a.body, buf || "…", true); first = false; } renderSources(a.bubble, ev.sources); addFeedback(a.bubble, ev.log_id); scrollDown(); }
-          else if (ev.type === "error") { setBody(a.body, ev.text || t().errorMsg, true); first = false; }
+          else if (ev.type === "done") { completed = true; if (first) { setBody(a.body, buf || "…", true); first = false; } renderSources(a.bubble, ev.sources); addFeedback(a.bubble, ev.log_id); scrollDown(); }
+          else if (ev.type === "error") { completed = true; setBody(a.body, ev.text || t().errorMsg, true); first = false; }
         }
       }
+      if (!completed) throw new Error("Chat stream ended before completion");
     } catch (e) {
       setBody(a.body, t().errorMsg, true);
     } finally {

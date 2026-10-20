@@ -116,6 +116,6 @@ def api_chat_stream():
     return Response(
         stream_with_context(gen()),
         mimetype="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
-                 "Connection": "keep-alive"},
+        # Connection management belongs to the WSGI server, not the application.
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

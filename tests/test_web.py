@@ -4,6 +4,8 @@ These exercise routing, CSRF, security headers and rate limiting WITHOUT making
 any model calls (we never hit /api/chat with a real message that reaches the LLM
 beyond the rate-limit / empty-message guards)."""
 import pytest
+import json
+from wsgiref.util import is_hop_by_hop
 
 from app.web import create_app
 
@@ -48,6 +50,23 @@ def test_post_without_csrf_is_rejected(client):
 def test_empty_chat_message_rejected(client):
     r = client.post("/api/chat", json={"message": ""})
     assert r.status_code == 400
+
+
+def test_chat_stream_is_wsgi_safe_and_completes(client, monkeypatch):
+    import app.web.routes.chat as chatmod
+    events = [{"type": "delta", "text": "Hello"},
+              {"type": "done", "sources": [], "served_from": "rag"}]
+    monkeypatch.setattr(chatmod, "allow", lambda ip: True)
+    monkeypatch.setattr(chatmod.rag, "stream_answer", lambda *args, **kwargs: iter(events))
+    response = client.post("/api/chat/stream", json={"message": "hello"})
+    assert response.status_code == 200
+    assert response.mimetype == "text/event-stream"
+    assert not any(is_hop_by_hop(name) for name in response.headers.keys())
+    assert response.headers["X-Accel-Buffering"] == "no"
+    received = [json.loads(part.removeprefix("data: "))
+                for part in response.get_data(as_text=True).strip().split("\n\n")]
+    assert received[:2] == events
+    assert received[-1]["type"] == "limit"
 
 
 def test_rate_limiter_unit_trips_and_resets(monkeypatch):
