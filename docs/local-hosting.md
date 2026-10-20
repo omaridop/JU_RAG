@@ -25,6 +25,36 @@ credentials into source files or commit them.
 - `https://kasitbot.app/healthz` must return HTTP 200.
 - Check `/admin/login` and the chat page through HTTPS.
 - Test `/api/chat` as well: a health check does not confirm model availability.
+- Test `/api/chat/stream` through the public domain: it must produce delta and
+  done events. Waitress must manage connection headers; do not add a
+  `Connection` header to the Flask streaming response.
+
+## Read aloud
+
+Completed RAG, memory, and web answers have a bilingual Listen button. It uses
+`elevenlabs/eleven-v4-turbo` and the selected ElevenLabs Voice ID
+`4wf10lgibMnboGJGCLrP` through the existing OpenRouter key. Voice availability
+was verified with a real MP3 request; accent quality still needs human review.
+The original answer wording is retained, without Markdown or URL targets.
+
+Audio is generated only on a click. `/api/speech` accepts a saved `log_id`, not
+arbitrary text, and checks session ownership. Replies are sent to OpenRouter
+for narration. The UI labels the result as an AI voice and offers pause,
+resume, stop, and replay without autoplaying new answers.
+
+Configure `TTS_ENABLED`, `TTS_MODEL`, `TTS_VOICE`, and
+`TTS_USD_PER_CHARACTER` in `.env`, then restart the origin. The default rate,
+verified on 2026-10-21, is $0.00004 per input character ($0.04 per 1,000).
+Speech costs are recorded as estimates with zero text tokens and included in
+the monthly cost total/budget. Update the character rate when pricing changes;
+the token-price calculator is not a speech calculator.
+
+The process keeps a 32 MiB, 30-minute audio cache; each browser retains up to
+five clips until a new chat or page exit. No audio files are persisted to disk.
+One synthesis request runs at a time, with rate limiting and a 60-second
+upstream timeout. Answers over the model's 10,000-character limit are rejected
+with an explicit message rather than silently truncated. The budget check is
+best-effort alongside concurrent text requests, not a provider-side hard cap.
 
 ## Rollback
 

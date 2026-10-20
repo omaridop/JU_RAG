@@ -11,7 +11,7 @@ from flask import (Blueprint, Response, jsonify, render_template, request,
 from ...config import settings
 from ...core import db
 from ...core.utils import detect_lang
-from ...chatbot import rag, prompts
+from ...chatbot import rag, prompts, speech
 from ..ratelimit import allow, client_ip
 
 bp = Blueprint("chat", __name__)
@@ -119,3 +119,27 @@ def api_chat_stream():
         # Connection management belongs to the WSGI server, not the application.
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@bp.post("/api/speech")
+def api_speech():
+    if not settings.TTS_ENABLED:
+        return jsonify(error="disabled"), 503
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or type(data.get("log_id")) is not int:
+        return jsonify(error="invalid"), 400
+    tok = session.get("chat_token")
+    if not tok:
+        return jsonify(error="not_found"), 404
+    entry = db.get_chat_log(data["log_id"])
+    if not entry or entry["session_token"] != tok:
+        return jsonify(error="not_found"), 404
+    if entry["served_from"] not in {"rag", "memory", "web"}:
+        return jsonify(error="unavailable"), 422
+    if not allow("speech:" + client_ip()):
+        return jsonify(error="busy"), 429
+    try:
+        audio = speech.generate(entry["answer"], tok)
+    except speech.SpeechError as exc:
+        return jsonify(error=exc.code), exc.status
+    return Response(audio, mimetype="audio/mpeg", headers={"Cache-Control": "private, no-store"})

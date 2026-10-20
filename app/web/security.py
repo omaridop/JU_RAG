@@ -53,6 +53,7 @@ SECURITY_HEADERS = {
     # and restricts form submissions to same-origin (an extra CSRF defense).
     "Content-Security-Policy": (
         "default-src 'self'; "
+        "media-src 'self' blob:; "
         "img-src 'self' data:; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "

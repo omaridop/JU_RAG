@@ -78,6 +78,7 @@
     document.querySelectorAll("[data-i18n-ph]").forEach(n => { const k = n.getAttribute("data-i18n-ph"); if (t()[k] != null) n.setAttribute("placeholder", t()[k]); });
     document.querySelectorAll("[data-i18n-title]").forEach(n => { const k = n.getAttribute("data-i18n-title"); if (t()[k] != null) n.setAttribute("title", t()[k]); });
     applyStyle();
+    window.JUSpeech?.refresh();
     renderSuggest();
   }
 
@@ -193,7 +194,7 @@
           if (ev.type === "status") { showSearching(a.body, ev.query); first = true; scrollDown(); }
           else if (ev.type === "reset") { buf = ""; first = true; }
           else if (ev.type === "delta") { if (first) { a.body.innerHTML = ""; first = false; } buf += ev.text; setBody(a.body, buf, true); scrollDown(); }
-          else if (ev.type === "done") { completed = true; if (first) { setBody(a.body, buf || "…", true); first = false; } renderSources(a.bubble, ev.sources); addFeedback(a.bubble, ev.log_id); scrollDown(); }
+          else if (ev.type === "done") { completed = true; if (first) { setBody(a.body, buf || "…", true); first = false; } renderSources(a.bubble, ev.sources); addFeedback(a.bubble, ev.log_id); if (["rag", "memory", "web"].includes(ev.served_from)) window.JUSpeech?.add(a.bubble, ev.log_id); scrollDown(); }
           else if (ev.type === "error") { completed = true; setBody(a.body, ev.text || t().errorMsg, true); first = false; }
         }
       }
@@ -219,6 +220,7 @@
     applyStyle(); input.focus();
   });
   $("#newChat").addEventListener("click", async () => {
+    window.JUSpeech?.clear();
     try { await fetch("/api/reset", { method: "POST" }); } catch (e) {}
     messages.innerHTML = ""; app.classList.add("is-empty"); input.value = ""; autoGrow(); updateSendState(); input.focus();
   });

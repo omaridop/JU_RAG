@@ -67,6 +67,10 @@ class Config:
     # Models
     CHAT_MODEL: str = _str("CHAT_MODEL", "deepseek/deepseek-v4-flash")
     EMBED_MODEL: str = _str("EMBED_MODEL", "google/gemini-embedding-2")
+    TTS_MODEL: str = _str("TTS_MODEL", "elevenlabs/eleven-v4-turbo")
+    TTS_VOICE: str = _str("TTS_VOICE", "4wf10lgibMnboGJGCLrP")
+    TTS_ENABLED: bool = _bool("TTS_ENABLED", True)
+    TTS_USD_PER_CHARACTER: float = _float("TTS_USD_PER_CHARACTER", 0.00004)
     # The model that READS documents (PDF natively / DOCX text) and chunks them.
     # Must support native PDF input for PDF_INGEST_MODE=native (Gemini does).
     CHUNK_MODEL: str = _str("CHUNK_MODEL", "google/gemini-2.5-flash")

@@ -29,6 +29,7 @@ _ctx: contextvars.ContextVar = contextvars.ContextVar("usage_ctx", default=None)
 
 # Human labels (Arabic) for the operations we meter.
 OPERATION_LABELS = {
+    "speech": "قراءة الإجابات صوتياً",
     "chat": "إجابات المحادثة",
     "condense": "إعادة صياغة السؤال",
     "embed": "التضمين (Embeddings)",
