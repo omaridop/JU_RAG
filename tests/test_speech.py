@@ -6,6 +6,7 @@ from flask import Flask
 
 from app.chatbot import speech
 from app.web.routes import chat
+_real_narration_language = speech.narration_language
 
 
 @pytest.fixture
@@ -14,6 +15,7 @@ def speech_env(monkeypatch):
     calls, usage = [], []
     monkeypatch.setattr(speech.settings, "TTS_ENABLED", True)
     monkeypatch.setattr(speech.settings, "TTS_USD_PER_CHARACTER", 0.00004)
+    monkeypatch.setattr(speech, "narration_language", lambda text, session: speech.detect_lang(text))
     monkeypatch.setattr(speech.db, "get_setting", lambda key: "0")
     monkeypatch.setattr(speech.db, "token_month_cost", lambda: 0)
     monkeypatch.setattr(speech.db, "add_token_usage", lambda **kw: usage.append(kw))
@@ -34,7 +36,7 @@ def test_generation_uses_selected_voice_and_caches(speech_env):
     assert speech.generate("Hello **student**", "owner") == b"ID3-test-audio"
     assert len(calls) == len(usage) == 1
     assert calls[0]["json"] == {"model": speech.settings.TTS_MODEL,
-                                 "voice": "4wf10lgibMnboGJGCLrP",
+                                 "voice": "XZXyuzPdidXaSa10PmVA",
                                  "input": "Hello student", "response_format": "mp3"}
     assert usage[0]["prompt_tokens"] == 0
     assert usage[0]["estimated"] == 1
@@ -42,7 +44,7 @@ def test_generation_uses_selected_voice_and_caches(speech_env):
 
 
 def test_budget_blocks_provider_call(speech_env, monkeypatch):
-    monkeypatch.setattr(speech.db, "get_setting", lambda key: "0.00001")
+    monkeypatch.setattr(speech.db, "get_setting", lambda key: "0.00001" if key == "monthly_budget_usd" else None)
     with pytest.raises(speech.SpeechError, match="") as exc:
         speech.generate("Hello", "owner")
     assert exc.value.code == "budget"
@@ -182,3 +184,40 @@ def test_diacritics_preserve_mixed_text_and_numbers(speech_env, monkeypatch):
     result = "رُسومُ IT هي 42 ديناراً."
     fake_diacritics(monkeypatch, result)
     assert speech.diacritize("رسوم IT هي 42 ديناراً.", "owner") == result
+
+
+@pytest.mark.parametrize("language,voice,text", [
+    ("sv", "aSLKtNoVBZlxQEMsnGL2", "Hej! Jag hjälper dig med dina studier."),
+    ("en", "XZXyuzPdidXaSa10PmVA", "Hello! I can help with your studies."),
+])
+def test_language_routes_to_requested_voice(speech_env, monkeypatch, language, voice, text):
+    monkeypatch.setattr(speech, "narration_language", _real_narration_language)
+    calls = fake_diacritics(monkeypatch, language)
+    speech.generate(text, "owner")
+    speech.generate(text, "owner")
+    assert len(calls) == 1  # cache skips language classification as well as audio
+    assert speech_env[0][0]["json"]["voice"] == voice
+    assert speech_env[0][0]["json"]["input"] == text
+    assert speech_env[1][0]["operation"] == "speech_language"
+
+
+def test_arabic_language_detection_needs_no_provider(speech_env, monkeypatch):
+    calls = fake_diacritics(monkeypatch, "en")
+    assert _real_narration_language("مرحبا بكم في الجامعة", "owner") == "ar"
+    assert not calls
+
+
+def test_bad_language_result_does_not_use_wrong_voice(speech_env, monkeypatch):
+    monkeypatch.setattr(speech, "narration_language", _real_narration_language)
+    fake_diacritics(monkeypatch, "maybe Swedish")
+    with pytest.raises(speech.SpeechError):
+        speech.generate("Hej, jag heter Ali.", "owner")
+    assert not speech_env[0]
+
+
+def test_voice_change_invalidates_cache(speech_env, monkeypatch):
+    speech.generate("Hello", "owner")
+    monkeypatch.setattr(speech.settings, "TTS_VOICE_EN", "replacement")
+    speech.generate("Hello", "owner")
+    assert len(speech_env[0]) == 2
+    assert speech_env[0][1]["json"]["voice"] == "replacement"

@@ -58,6 +58,7 @@
   'web_search': ['البحث في موقع الجامعة', 'JU website search'],
   'speech': ['قراءة الإجابات صوتياً', 'Read aloud'],
   'speech_diacritics': ['تشكيل النص للقراءة الصوتية', 'Speech diacritics'],
+  'speech_language': ['تحديد لغة الصوت', 'Speech language detection'],
 } -%}
 {{- (m.get(op, [op, op])[1] if en else m.get(op, [op, op])[0]) -}}
 {%- endmacro -%}

@@ -31,6 +31,7 @@ _ctx: contextvars.ContextVar = contextvars.ContextVar("usage_ctx", default=None)
 OPERATION_LABELS = {
     "speech": "قراءة الإجابات صوتياً",
     "speech_diacritics": "تشكيل النص للقراءة الصوتية",
+    "speech_language": "تحديد لغة الصوت",
     "chat": "إجابات المحادثة",
     "condense": "إعادة صياغة السؤال",
     "embed": "التضمين (Embeddings)",

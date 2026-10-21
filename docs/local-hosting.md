@@ -44,6 +44,16 @@ falls back to the original text. English-only answers skip this step. Its token
 cost is recorded separately as Speech diacritics. Cached replays skip both calls.
 This may improve pronunciation, but is not a guarantee of a particular accent.
 
+English replies use `TTS_VOICE_EN=XZXyuzPdidXaSa10PmVA`; Swedish replies use
+`TTS_VOICE_SV=aSLKtNoVBZlxQEMsnGL2`. Selection follows the predominant language
+of the saved answer, not the interface language. Arabic is detected locally;
+other text is classified by DeepSeek (up to 10 seconds), with cost recorded as
+Speech language detection. If classification fails, the request fails safely
+instead of silently selecting the wrong voice. Mixed replies use one voice for
+their predominant language. Unsupported languages currently select English.
+Only Arabic-dominant replies receive the diacritics step. Cached replays skip
+classification, and changing a configured voice invalidates cached audio.
+
 Audio is generated only on a click. `/api/speech` accepts a saved `log_id`, not
 arbitrary text, and checks session ownership. Replies are sent to OpenRouter
 for narration. The UI labels the result as an AI voice and offers pause,

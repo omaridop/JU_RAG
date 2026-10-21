@@ -69,6 +69,8 @@ class Config:
     EMBED_MODEL: str = _str("EMBED_MODEL", "google/gemini-embedding-2")
     TTS_MODEL: str = _str("TTS_MODEL", "elevenlabs/eleven-v4-turbo")
     TTS_VOICE: str = _str("TTS_VOICE", "4wf10lgibMnboGJGCLrP")
+    TTS_VOICE_EN: str = _str("TTS_VOICE_EN", "XZXyuzPdidXaSa10PmVA")
+    TTS_VOICE_SV: str = _str("TTS_VOICE_SV", "aSLKtNoVBZlxQEMsnGL2")
     TTS_ENABLED: bool = _bool("TTS_ENABLED", True)
     TTS_DIACRITICS_MODEL: str = _str("TTS_DIACRITICS_MODEL", CHAT_MODEL)
     TTS_USD_PER_CHARACTER: float = _float("TTS_USD_PER_CHARACTER", 0.00004)
