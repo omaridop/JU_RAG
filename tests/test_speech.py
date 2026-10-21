@@ -12,6 +12,7 @@ _real_narration_language = speech.narration_language
 @pytest.fixture
 def speech_env(monkeypatch):
     speech._cache.clear()
+    speech._prepared_cache.clear()
     calls, usage = [], []
     monkeypatch.setattr(speech.settings, "TTS_ENABLED", True)
     monkeypatch.setattr(speech.settings, "TTS_USD_PER_CHARACTER", 0.00004)
@@ -28,6 +29,7 @@ def speech_env(monkeypatch):
     monkeypatch.setattr(speech.httpx, "post", post)
     yield calls, usage
     speech._cache.clear()
+    speech._prepared_cache.clear()
 
 
 def test_generation_uses_selected_voice_and_caches(speech_env):
@@ -221,3 +223,47 @@ def test_voice_change_invalidates_cache(speech_env, monkeypatch):
     speech.generate("Hello", "owner")
     assert len(speech_env[0]) == 2
     assert speech_env[0][1]["json"]["voice"] == "replacement"
+
+
+def test_switching_arabic_provider_reuses_diacritics(speech_env, monkeypatch):
+    selected = {"value": "elevenlabs"}
+    monkeypatch.setattr(speech.db, "get_setting", lambda key: selected["value"] if key == "tts_ar_provider" else None)
+    monkeypatch.setattr(speech.settings, "MONTHLY_BUDGET_USD", 0)
+    vocalized = "مَرْحَباً بِكُمْ في الجامعة."
+    preparation = fake_diacritics(monkeypatch, vocalized)
+    speech.generate("مرحباً بكم في الجامعة.", "owner")
+    selected["value"] = "fish"
+    speech.generate("مرحباً بكم في الجامعة.", "owner")
+    assert len(preparation) == 1
+    calls, usage = speech_env
+    assert calls[0]["json"]["voice"] == speech.settings.TTS_VOICE
+    assert calls[1]["json"]["model"] == "fish-audio/drama-3"
+    assert calls[1]["json"]["voice"] == "21b77f5a415a41ceab055b43fcd2c348"
+    assert calls[1]["json"]["input"] == vocalized
+    assert usage[-1]["model"] == "fish-audio/drama-3"
+    assert usage[-1]["cost_usd"] == pytest.approx(len(vocalized.encode("utf-8")) * 0.00001)
+
+
+@pytest.mark.parametrize("language,voice", [("en", "XZXyuzPdidXaSa10PmVA"), ("sv", "aSLKtNoVBZlxQEMsnGL2")])
+def test_fish_setting_does_not_change_other_languages(language, voice):
+    assert speech.voice_profile(language, "fish") == (speech.settings.TTS_MODEL, voice)
+
+
+def test_invalid_provider_defaults_to_existing_voice(monkeypatch):
+    monkeypatch.setattr(speech.db, "get_setting", lambda key: "untrusted-model")
+    assert speech.arabic_provider() == "elevenlabs"
+
+
+def test_dialect_prompt_uses_evidence_not_forced_translation():
+    assert "textual evidence" in speech._DIACRITICS_PROMPT
+    assert "neutral standard reading" in speech._DIACRITICS_PROMPT
+    assert "whole sentence" in speech._DIACRITICS_PROMPT
+
+
+def test_diacritics_cache_expires(speech_env, monkeypatch):
+    calls = fake_diacritics(monkeypatch, "مَرْحَبا")
+    speech.diacritize("مرحبا", "owner")
+    key = next(iter(speech._prepared_cache))
+    speech._prepared_cache[key] = (speech.time.monotonic() - 1900, "مَرْحَبا")
+    speech.diacritize("مرحبا", "owner")
+    assert len(calls) == 2

@@ -20,7 +20,7 @@ from ...core import db, tokens
 from ...core.auth import (current_admin, hash_password, is_super, login_required,
                           super_required, verify_password)
 from ...core.utils import file_sha256, now_iso, to_iso
-from ...chatbot import memory_cache
+from ...chatbot import memory_cache, speech
 from ...pipeline.ingest import ingest_file
 from ...pipeline.vectorstore import get_store
 from ..security import csrf_protect
@@ -721,7 +721,20 @@ def settings_page():
     web_on = (web_raw.strip().lower() in {"1", "true", "yes", "on"}
               if web_raw is not None else settings.WEB_SEARCH_ENABLED)
     return render_template("admin/settings.html", chat_limit=chat_limit, cfg=settings,
-                           web_on=web_on)
+                           web_on=web_on, tts_ar_provider=speech.arabic_provider())
+
+
+@bp.post("/settings/speech")
+@login_required
+def settings_speech():
+    provider = request.form.get("tts_ar_provider")
+    if provider not in {"elevenlabs", "fish"}:
+        return jsonify(error="Invalid Arabic speech provider"), 400
+    db.set_setting("tts_ar_provider", provider)
+    _audit("settings_change", target="tts_ar_provider", detail=provider)
+    english = request.cookies.get("ju_admin_lang") == "en"
+    flash("Arabic voice provider saved." if english else "تم حفظ مزوّد الصوت العربي.", "success")
+    return redirect(url_for("admin.settings_page"))
 
 
 @bp.post("/settings/web-search")

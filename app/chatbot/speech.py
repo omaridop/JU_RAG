@@ -17,14 +17,24 @@ from ..core.utils import detect_lang
 log = logging.getLogger(__name__)
 _lock = threading.Lock()
 _cache = OrderedDict()
+_prepared_cache = OrderedDict()
 _CACHE_BYTES = 32 * 1024 * 1024
 _ARABIC_LETTERS = re.compile(r"[\u0621-\u064a\u066e-\u06d3]")
 _HARAKAT = re.compile(r"[\u064b-\u0652\u0670]")
 _DIACRITICS_PROMPT = """You prepare Arabic text for natural spoken narration.
 Add appropriate Arabic vowel marks (حركات / تشكيل), especially where needed
-for correct pronunciation, shadda and natural word reading. Prefer natural
-Jordanian spoken delivery: retain any Jordanian dialect already present and
-avoid excessive formal case endings at pauses. Do NOT translate formal Arabic
+for correct pronunciation, shadda and natural word reading. First silently infer
+the register and dialect from the text's vocabulary and grammar: Modern Standard
+Arabic, Jordanian/Palestinian/Levantine, Egyptian, Gulf, or another dialect.
+Use that dialect's pronunciation only when supported by textual evidence.
+For ambiguous colloquial Levantine text, prefer a natural Jordanian reading;
+for formal Arabic or uncertain dialect, retain a neutral standard reading.
+Do not infer dialect just from the university name or the selected voice.
+Resolve ambiguous words using the whole sentence and university context (fees,
+admissions, course hours, faculties). Preserve names when uncertain. Add useful
+vowels and shadda, not decorative full vocalization or invented formal case
+endings at spoken pauses. Retain colloquial forms such as شو، بدّي، هسّا، مش;
+do not convert them into formal words. Do NOT translate formal Arabic
 into dialect or change any words. Keep names, numbers, English, punctuation,
 word order and all non-diacritic characters exactly unchanged. Only add or
 adjust Arabic diacritics. Return the complete text alone, without explanation,
@@ -66,6 +76,14 @@ def diacritize(text, session_token):
     """Narration only. Fall back safely if the provider fails or rewrites words."""
     if not _ARABIC_LETTERS.search(text):
         return text
+    key = hashlib.sha256((settings.TTS_DIACRITICS_MODEL + _DIACRITICS_PROMPT + text).encode()).hexdigest()
+    now = time.monotonic()
+    for old in list(_prepared_cache):
+        if now - _prepared_cache[old][0] > 1800:
+            del _prepared_cache[old]
+    if key in _prepared_cache:
+        _prepared_cache.move_to_end(key)
+        return _prepared_cache[key][1]
     context = tokens.set_context(session_token=session_token)
     try:
         response = get_client().with_options(timeout=20, max_retries=0).chat.completions.create(
@@ -83,6 +101,9 @@ def diacritize(text, session_token):
         if (response.choices[0].finish_reason == "stop" and candidate
                 and len(candidate) <= 10000 and base(candidate) == base(text)):
             log.info("Speech diacritics validated (marks=%d)", len(_HARAKAT.findall(candidate)))
+            while len(_prepared_cache) >= 128:
+                _prepared_cache.popitem(last=False)
+            _prepared_cache[key] = (time.monotonic(), candidate)
             return candidate
         log.warning("Speech diacritics rejected: output did not preserve the original text")
     except Exception as exc:
@@ -108,11 +129,31 @@ def spoken_text(answer):
     return re.sub(r"\s+", " ", html.unescape(text)).strip()
 
 
+def arabic_provider():
+    value = db.get_setting("tts_ar_provider")
+    return value if value in {"elevenlabs", "fish"} else "elevenlabs"
+
+
+def voice_profile(language, provider):
+    if language == "ar" and provider == "fish":
+        return settings.TTS_FISH_MODEL, settings.TTS_FISH_VOICE
+    return settings.TTS_MODEL, {"ar": settings.TTS_VOICE, "en": settings.TTS_VOICE_EN,
+                                "sv": settings.TTS_VOICE_SV}[language]
+
+
+def speech_cost(text, fish=False):
+    if fish:
+        return len(text.encode("utf-8")) * max(0, settings.TTS_FISH_USD_PER_BYTE)
+    return len(text) * max(0, settings.TTS_USD_PER_CHARACTER)
+
+
 def generate(answer, session_token):
     text = spoken_text(answer)
     if not text or len(text) > 10000:
         raise SpeechError("length", 422)
-    key = hashlib.sha256(("voices-v2|" + settings.TTS_DIACRITICS_MODEL + "|"
+    provider = arabic_provider()
+    key = hashlib.sha256(("dialect-v3|" + provider + "|" + settings.TTS_FISH_MODEL + "|"
+                          + settings.TTS_FISH_VOICE + "|" + settings.TTS_DIACRITICS_MODEL + "|"
                           + settings.TTS_MODEL + "|" + settings.TTS_VOICE + "|"
                           + settings.TTS_VOICE_EN + "|" + settings.TTS_VOICE_SV + "|" + text).encode()).hexdigest()
     # One generation at a time bounds cost/concurrency and prevents duplicate billing.
@@ -126,7 +167,7 @@ def generate(answer, session_token):
         if key in _cache:
             _cache.move_to_end(key)
             return _cache[key][1]
-        estimate = len(text) * max(0, settings.TTS_USD_PER_CHARACTER)
+        estimate = max(speech_cost(text), speech_cost(text, fish=True)) if provider == "fish" else speech_cost(text)
         raw = db.get_setting("monthly_budget_usd")
         try:
             budget = float(raw) if raw is not None else settings.MONTHLY_BUDGET_USD
@@ -142,19 +183,18 @@ def generate(answer, session_token):
         if budget > 0 and db.token_month_cost() + estimate + preparation_estimate >= budget:
             raise SpeechError("budget", 403)
         language = narration_language(text, session_token)
-        voice = {"ar": settings.TTS_VOICE, "en": settings.TTS_VOICE_EN,
-                 "sv": settings.TTS_VOICE_SV}[language]
+        model, voice = voice_profile(language, provider)
         if language == "ar":
             text = diacritize(text, session_token)
         # Harakat increase the character count billed by the speech provider.
-        estimate = len(text) * max(0, settings.TTS_USD_PER_CHARACTER)
+        estimate = speech_cost(text, fish=language == "ar" and provider == "fish")
         if budget > 0 and db.token_month_cost() + estimate >= budget:
             raise SpeechError("budget", 403)
         try:
             response = httpx.post(
                 settings.OPENROUTER_BASE_URL.rstrip("/") + "/audio/speech",
                 headers={"Authorization": f"Bearer {settings.OPENROUTER_API_KEY}"},
-                json={"model": settings.TTS_MODEL, "voice": voice,
+                json={"model": model, "voice": voice,
                       "input": text, "response_format": "mp3"},
                 timeout=httpx.Timeout(60, connect=10),
             )
@@ -165,8 +205,8 @@ def generate(answer, session_token):
             # Never log provider response bodies (may contain credentials or student text).
             log.warning("Speech request failed (%s)", type(exc).__name__)
             raise SpeechError("unavailable", 502) from None
-        # Audio is billed by CHARACTER, not tokens. Keep token totals honest.
-        db.add_token_usage(model=settings.TTS_MODEL, operation="speech",
+        # ElevenLabs bills characters; Fish bills UTF-8 bytes, not tokens.
+        db.add_token_usage(model=model, operation="speech",
                            prompt_tokens=0, completion_tokens=0, cost_usd=estimate,
                            estimated=1, session_token=session_token)
         audio = response.content

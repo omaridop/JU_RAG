@@ -7,6 +7,23 @@
 <div class="settings-layout">
   <div class="settings-stack">
     <section class="card">
+      <div class="settings-section-label">{{ icon('settings') }}<h3>{{ t('الصوت العربي', 'Arabic voice') }}</h3></div>
+      <p class="sub" id="speech-help">{{ t('اختر مزوّد القراءة الصوتية للإجابات العربية. تبقى الأصوات الإنجليزية والسويدية على ElevenLabs.', 'Choose the speech provider for Arabic replies. English and Swedish keep their ElevenLabs voices.') }}</p>
+      <form method="post" action="{{ url_for('admin.settings_speech') }}">
+        {{ csrf_field() }}
+        <div class="field">
+          <label for="tts_ar_provider">{{ t('مزوّد الصوت', 'Voice provider') }}</label>
+          <select id="tts_ar_provider" name="tts_ar_provider" aria-describedby="speech-help speech-timing" dir="ltr">
+            <option value="elevenlabs" {{ 'selected' if tts_ar_provider == 'elevenlabs' }}>ElevenLabs · Eleven v4 Turbo</option>
+            <option value="fish" {{ 'selected' if tts_ar_provider == 'fish' }}>Fish Audio · Drama 3</option>
+          </select>
+          <span class="hint" id="speech-timing">{{ t('يسري على الصوت المُولّد بعد الحفظ دون إعادة تشغيل. حدّث صفحة المحادثة لمسح الصوت المخزّن في المتصفح.', 'Applies to audio generated after saving, without a restart. Refresh the chat page to clear audio already cached in the browser.') }}</span>
+        </div>
+        <p class="sub">{{ t('يستدل DeepSeek على اللهجة من النص ويضيف التشكيل المناسب مع الحفاظ على الكلمات والأرقام. عند عدم وضوح اللهجة يحتفظ بقراءة فصحى محايدة.', 'DeepSeek infers dialect from the text and adds pronunciation marks while preserving words and numbers. Uncertain dialects retain a neutral standard reading.') }}</p>
+        <button class="btn" type="submit">{{ t('حفظ الصوت العربي', 'Save Arabic voice') }}</button>
+      </form>
+    </section>
+    <section class="card">
       <div class="settings-section-label">{{ icon('chat') }}<h3>{{ t('حدّ المحادثة', 'Conversation limit') }}</h3></div>
       <p class="sub" id="limit-help">{{ t('حدّد عدد الرسائل المتاحة لكل جلسة طالب للتحكم في الاستخدام.', 'Set the number of messages available per student session to manage usage.') }}</p>
       <form method="post" action="{{ url_for('admin.settings_save') }}">

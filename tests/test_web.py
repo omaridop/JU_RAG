@@ -92,3 +92,38 @@ def test_chat_route_returns_429_when_limited(client, monkeypatch):
     r = client.post("/api/chat", json={"message": "hi"})
     assert r.status_code == 429
     assert r.get_json()["served_from"] == "rate_limited"
+
+
+def test_speech_settings_require_csrf(client):
+    assert client.post('/admin/settings/speech', data={'tts_ar_provider': 'fish'}).status_code == 400
+
+
+def test_speech_settings_require_login(client):
+    with client.session_transaction() as session:
+        session['_csrf'] = 'test-token'
+    response = client.post('/admin/settings/speech', data={'csrf_token': 'test-token', 'tts_ar_provider': 'fish'})
+    assert response.status_code == 302
+    assert '/admin/login' in response.headers['Location']
+
+
+def test_speech_settings_validate_save_and_audit(client, monkeypatch):
+    from app.core import auth, db
+    from app.web.routes import admin
+    monkeypatch.setattr(auth, 'current_admin', lambda: {'id': 1, 'username': 'test', 'role': 'super'})
+    audits = []
+    monkeypatch.setattr(admin, '_audit', lambda *args, **kwargs: audits.append((args, kwargs)))
+    with client.session_transaction() as session:
+        session['_csrf'] = 'test-token'
+    for value in ['fish', 'elevenlabs']:
+        response = client.post('/admin/settings/speech', data={'csrf_token': 'test-token', 'tts_ar_provider': value})
+        assert response.status_code == 302
+        assert db.get_setting('tts_ar_provider') == value
+    assert len(audits) == 2
+    response = client.post('/admin/settings/speech', data={'csrf_token': 'test-token', 'tts_ar_provider': 'custom'})
+    assert response.status_code == 400
+    assert db.get_setting('tts_ar_provider') == 'elevenlabs'
+    assert len(audits) == 2
+    response = client.get('/admin/settings')
+    assert response.status_code == 200
+    assert b'Fish Audio' in response.data
+    assert b'for="tts_ar_provider"' in response.data

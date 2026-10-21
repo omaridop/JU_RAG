@@ -54,6 +54,32 @@ their predominant language. Unsupported languages currently select English.
 Only Arabic-dominant replies receive the diacritics step. Cached replays skip
 classification, and changing a configured voice invalidates cached audio.
 
+### Arabic provider switch
+
+In **Admin → Settings → Arabic voice**, select **ElevenLabs · Eleven v4 Turbo**
+or **Fish Audio · Drama 3**, then save. This login/CSRF-protected, audited setting
+(`tts_ar_provider`) is read live; no restart is needed. ElevenLabs remains the
+default. English and Swedish are unaffected. Refresh an already-open chat to
+discard browser-cached audio when comparing providers.
+
+Fish uses `fish-audio/drama-3` and voice
+`21b77f5a415a41ceab055b43fcd2c348`. Configure overrides through
+`TTS_FISH_MODEL`, `TTS_FISH_VOICE`, and `TTS_FISH_USD_PER_BYTE`. The verified
+2026-10-21 rate is $10 per million UTF-8 input bytes ($0.00001/byte), not per
+character; Arabic letters and diacritics therefore count as multiple bytes.
+Speech cost estimates use the selected provider's billing unit.
+
+Arabic preparation infers register/dialect from vocabulary, grammar and sentence
+context in the same DeepSeek call used for tashkeel. It preserves formal Arabic
+as formal Arabic, retains dialect words, and uses neutral standard pronunciation
+when uncertain. It does not infer dialect from the university name or voice.
+Only vowel marks/whitespace may change; altered words and numbers are rejected.
+Validated preparations are cached separately (128 entries, 30 minutes), so
+switching providers can reuse them without another DeepSeek call. Audio caches
+include the selected provider/model/voice. No provider is silently substituted
+if generation fails. Dialect inference and pronunciation still need listening
+review; the system cannot guarantee perfect accents.
+
 Audio is generated only on a click. `/api/speech` accepts a saved `log_id`, not
 arbitrary text, and checks session ownership. Replies are sent to OpenRouter
 for narration. The UI labels the result as an AI voice and offers pause,
