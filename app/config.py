@@ -72,6 +72,7 @@ class Config:
     TTS_VOICE_EN: str = _str("TTS_VOICE_EN", "XZXyuzPdidXaSa10PmVA")
     TTS_VOICE_SV: str = _str("TTS_VOICE_SV", "aSLKtNoVBZlxQEMsnGL2")
     TTS_FISH_MODEL: str = _str("TTS_FISH_MODEL", "fish-audio/drama-3")
+    TTS_FISH_MALE_VOICE: str = _str("TTS_FISH_MALE_VOICE", "4cb8371162134edeb4915672ffc66de6")
     TTS_FISH_VOICE: str = _str("TTS_FISH_VOICE", "21b77f5a415a41ceab055b43fcd2c348")
     TTS_FISH_USD_PER_BYTE: float = _float("TTS_FISH_USD_PER_BYTE", 0.00001)
     TTS_ENABLED: bool = _bool("TTS_ENABLED", True)

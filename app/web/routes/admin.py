@@ -728,7 +728,7 @@ def settings_page():
 @login_required
 def settings_speech():
     provider = request.form.get("tts_ar_provider")
-    if provider not in {"elevenlabs", "fish"}:
+    if provider not in {"elevenlabs", "fish", "fish_male"}:
         return jsonify(error="Invalid Arabic speech provider"), 400
     db.set_setting("tts_ar_provider", provider)
     _audit("settings_change", target="tts_ar_provider", detail=provider)

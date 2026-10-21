@@ -56,6 +56,13 @@ classification, and changing a configured voice invalidates cached audio.
 
 ### Arabic provider switch
 
+The additional **Male Jordanian AI · Drama 3** option (`fish_male`) uses voice
+`4cb8371162134edeb4915672ffc66de6`, configurable as `TTS_FISH_MALE_VOICE`.
+It was enabled on 2026-10-22 at the user's request. The previous Fish voice and
+ElevenLabs remain selectable. This user-supplied voice label is not an
+independent verification of its accent; Arabic tashkeel and byte billing apply
+to both Fish options, with separate audio cache keys.
+
 In **Admin → Settings → Arabic voice**, select **ElevenLabs · Eleven v4 Turbo**
 or **Fish Audio · Drama 3**, then save. This login/CSRF-protected, audited setting
 (`tts_ar_provider`) is read live; no restart is needed. ElevenLabs remains the

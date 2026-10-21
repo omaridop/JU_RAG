@@ -131,10 +131,12 @@ def spoken_text(answer):
 
 def arabic_provider():
     value = db.get_setting("tts_ar_provider")
-    return value if value in {"elevenlabs", "fish"} else "elevenlabs"
+    return value if value in {"elevenlabs", "fish", "fish_male"} else "elevenlabs"
 
 
 def voice_profile(language, provider):
+    if language == "ar" and provider == "fish_male":
+        return settings.TTS_FISH_MODEL, settings.TTS_FISH_MALE_VOICE
     if language == "ar" and provider == "fish":
         return settings.TTS_FISH_MODEL, settings.TTS_FISH_VOICE
     return settings.TTS_MODEL, {"ar": settings.TTS_VOICE, "en": settings.TTS_VOICE_EN,
@@ -153,7 +155,7 @@ def generate(answer, session_token):
         raise SpeechError("length", 422)
     provider = arabic_provider()
     key = hashlib.sha256(("dialect-v3|" + provider + "|" + settings.TTS_FISH_MODEL + "|"
-                          + settings.TTS_FISH_VOICE + "|" + settings.TTS_DIACRITICS_MODEL + "|"
+                          + settings.TTS_FISH_VOICE + "|" + settings.TTS_FISH_MALE_VOICE + "|" + settings.TTS_DIACRITICS_MODEL + "|"
                           + settings.TTS_MODEL + "|" + settings.TTS_VOICE + "|"
                           + settings.TTS_VOICE_EN + "|" + settings.TTS_VOICE_SV + "|" + text).encode()).hexdigest()
     # One generation at a time bounds cost/concurrency and prevents duplicate billing.
@@ -167,7 +169,7 @@ def generate(answer, session_token):
         if key in _cache:
             _cache.move_to_end(key)
             return _cache[key][1]
-        estimate = max(speech_cost(text), speech_cost(text, fish=True)) if provider == "fish" else speech_cost(text)
+        estimate = max(speech_cost(text), speech_cost(text, fish=True)) if provider in {"fish", "fish_male"} else speech_cost(text)
         raw = db.get_setting("monthly_budget_usd")
         try:
             budget = float(raw) if raw is not None else settings.MONTHLY_BUDGET_USD
@@ -187,7 +189,7 @@ def generate(answer, session_token):
         if language == "ar":
             text = diacritize(text, session_token)
         # Harakat increase the character count billed by the speech provider.
-        estimate = speech_cost(text, fish=language == "ar" and provider == "fish")
+        estimate = speech_cost(text, fish=language == "ar" and provider in {"fish", "fish_male"})
         if budget > 0 and db.token_month_cost() + estimate >= budget:
             raise SpeechError("budget", 403)
         try:

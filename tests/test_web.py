@@ -114,15 +114,15 @@ def test_speech_settings_validate_save_and_audit(client, monkeypatch):
     monkeypatch.setattr(admin, '_audit', lambda *args, **kwargs: audits.append((args, kwargs)))
     with client.session_transaction() as session:
         session['_csrf'] = 'test-token'
-    for value in ['fish', 'elevenlabs']:
+    for value in ['fish', 'fish_male', 'elevenlabs']:
         response = client.post('/admin/settings/speech', data={'csrf_token': 'test-token', 'tts_ar_provider': value})
         assert response.status_code == 302
         assert db.get_setting('tts_ar_provider') == value
-    assert len(audits) == 2
+    assert len(audits) == 3
     response = client.post('/admin/settings/speech', data={'csrf_token': 'test-token', 'tts_ar_provider': 'custom'})
     assert response.status_code == 400
     assert db.get_setting('tts_ar_provider') == 'elevenlabs'
-    assert len(audits) == 2
+    assert len(audits) == 3
     response = client.get('/admin/settings')
     assert response.status_code == 200
     assert b'Fish Audio' in response.data

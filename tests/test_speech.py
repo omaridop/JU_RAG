@@ -254,6 +254,18 @@ def test_invalid_provider_defaults_to_existing_voice(monkeypatch):
     assert speech.arabic_provider() == "elevenlabs"
 
 
+def test_male_jordanian_voice_and_byte_billing(speech_env, monkeypatch):
+    monkeypatch.setattr(speech.db, "get_setting", lambda key: "fish_male" if key == "tts_ar_provider" else "0")
+    fake_diacritics(monkeypatch, "مَرْحَبا")
+    speech.generate("مرحبا", "owner")
+    payload = speech_env[0][0]["json"]
+    assert payload["model"] == "fish-audio/drama-3"
+    assert payload["voice"] == "4cb8371162134edeb4915672ffc66de6"
+    assert speech_env[1][-1]["cost_usd"] == pytest.approx(len("مَرْحَبا".encode("utf-8")) * 0.00001)
+    assert speech.voice_profile("en", "fish_male")[1] == speech.settings.TTS_VOICE_EN
+    assert speech.voice_profile("sv", "fish_male")[1] == speech.settings.TTS_VOICE_SV
+
+
 def test_dialect_prompt_uses_evidence_not_forced_translation():
     assert "textual evidence" in speech._DIACRITICS_PROMPT
     assert "neutral standard reading" in speech._DIACRITICS_PROMPT
