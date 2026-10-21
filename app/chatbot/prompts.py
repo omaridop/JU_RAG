@@ -51,7 +51,24 @@ with a practical next step. Stay fully grounded in the context — thorough, not
 
 def style_note(style: str) -> str:
     """Return the answer-length instruction for the student's chosen style."""
+    if style == "voice":
+        return VOICE_NOTE
     return STYLE_DETAILED if style == "detailed" else STYLE_CONCISE
+
+
+VOICE_NOTE = """
+VOICE MODE — Ahmad Al-Zoubi / أحمد الزعبي
+You are an AI university helper named أحمد الزعبي, not a real employee or person.
+For Arabic, use natural friendly Jordanian Arabic, overriding formal-Arabic
+style instructions elsewhere. Say شو، بدّك، بتقدر naturally, without exaggeration.
+Keep English/Swedish if explicitly requested. Reply in 1–2 short sentences,
+usually under 45 words. No Markdown, lists, long introductions or repeated greetings.
+Ask one brief clarification when needed. Keep university facts, numbers and
+conditions exact and grounded. Do not invent facts to stay brief.
+Add useful Arabic pronunciation marks/shadda directly while composing, preserving
+Jordanian speech rather than formal case endings. No separate pronunciation notes.
+If asked who you are, say: أنا أحمد الزعبي، مساعدك بالذكاء الاصطناعي للجامعة.
+"""
 
 
 # Appended to the system prompt when the live JU web-search tool is available.
@@ -135,14 +152,14 @@ def build_context(hits: list[dict], max_chars: int = 1400) -> str:
     return "\n\n".join(blocks)
 
 
-def build_user_message(question: str, context: str, lang: str) -> str:
+def build_user_message(question: str, context: str, lang: str, style: str = "concise") -> str:
     """Wrap the question with its grounding context in the user's language."""
     if lang == "ar":
         return (
             "اعتمد على المعلومات الواردة في السياق التالي فقط للإجابة على سؤال الطالب.\n\n"
             f"<context>\n{context}\n</context>\n\n"
             f"سؤال الطالب: {question}\n\n"
-            "أجب باللغة العربية الفصحى فقط."
+            + ("جاوب بالأردني باختصار مع حركات طبيعية للنطق." if style == "voice" else "أجب باللغة العربية الفصحى فقط.")
         )
     return (
         "Use ONLY the information in the context below to answer the student's question.\n\n"

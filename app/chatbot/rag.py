@@ -116,7 +116,7 @@ def _agent_messages(prep: dict) -> list:
         {"role": "system", "content": system},
         *prep["history"],
         {"role": "user",
-         "content": prompts.build_user_message(prep["question"], prep["context"], prep["lang"])},
+         "content": prompts.build_user_message(prep["question"], prep["context"], prep["lang"], prep.get("answer_style", "concise"))},
     ]
 
 
@@ -302,7 +302,7 @@ def _prepare(question: str, session_token: str, use_web: bool = False,
 
     # 2) Exact memory match — free, no embedding/LLM.
     mem = memory_cache.lookup_exact(question)
-    if mem:
+    if mem and answer_style != "voice":
         return {"type": "memory", "lang": mem["lang"] or lang, "mem": mem}
 
     # 3) Conversation memory: rewrite follow-ups into standalone queries so
@@ -311,13 +311,13 @@ def _prepare(question: str, session_token: str, use_web: bool = False,
     search_q = _condense_question(question, history)
     if search_q != question:
         mem = memory_cache.lookup_exact(search_q)
-        if mem:
+        if mem and answer_style != "voice":
             return {"type": "memory", "lang": mem["lang"] or lang, "mem": mem}
 
     # 4) Embed once, reuse for semantic-memory AND retrieval.
     query_embedding = embed_query(search_q)
     mem = memory_cache.lookup_semantic(search_q, query_embedding)
-    if mem:
+    if mem and answer_style != "voice":
         return {"type": "memory", "lang": mem["lang"] or lang, "mem": mem}
 
     # 5) Retrieve context and assemble the prompt. Deactivated documents are
@@ -340,7 +340,7 @@ def _prepare(question: str, session_token: str, use_web: bool = False,
     messages = [
         {"role": "system", "content": system},
         *history,
-        {"role": "user", "content": prompts.build_user_message(question, context, lang)},
+        {"role": "user", "content": prompts.build_user_message(question, context, lang, answer_style)},
     ]
     return {"type": "rag", "lang": lang, "hits": hits, "messages": messages,
             "web_on": web_on, "web_auto": web_auto, "question": question,
@@ -383,6 +383,11 @@ def _exec_tool_calls(messages: list, tcs: dict, web_sources: list,
         messages.append({"role": "tool", "tool_call_id": tool_id, "content": result})
 
 
+def _voice_token_limit(messages):
+    voice = any(m.get("role") == "system" and "VOICE MODE —" in m.get("content", "") for m in messages)
+    return min(settings.CHAT_MAX_TOKENS, 320) if voice else settings.CHAT_MAX_TOKENS
+
+
 def _agent_stream(messages: list, holder: dict) -> Iterator[dict]:
     """Streaming tool-calling agent. Yields delta/status/reset events; fills
     ``holder`` with the final ``answer`` and ``web_sources``."""
@@ -396,7 +401,7 @@ def _agent_stream(messages: list, holder: dict) -> Iterator[dict]:
             messages.append({"role": "user", "content": _FINAL_ANSWER_NUDGE})
         kwargs = dict(
             model=settings.CHAT_MODEL, messages=messages,
-            temperature=settings.CHAT_TEMPERATURE, max_tokens=settings.CHAT_MAX_TOKENS,
+            temperature=settings.CHAT_TEMPERATURE, max_tokens=_voice_token_limit(messages),
             stream=True, stream_options={"include_usage": True},
             extra_body=_agent_extra(),
         )
@@ -452,7 +457,7 @@ def _agent_blocking(messages: list) -> tuple[str, list[dict]]:
             messages.append({"role": "user", "content": _FINAL_ANSWER_NUDGE})
         kwargs = dict(
             model=settings.CHAT_MODEL, messages=messages,
-            temperature=settings.CHAT_TEMPERATURE, max_tokens=settings.CHAT_MAX_TOKENS,
+            temperature=settings.CHAT_TEMPERATURE, max_tokens=_voice_token_limit(messages),
             extra_body=_agent_extra(),
         )
         if offer_tools:
@@ -516,7 +521,7 @@ def generate_answer(question: str, session_token: str, use_web: bool = False,
         else:
             resp = get_client().chat.completions.create(
                 model=settings.CHAT_MODEL, messages=prep["messages"],
-                temperature=settings.CHAT_TEMPERATURE, max_tokens=settings.CHAT_MAX_TOKENS,
+                temperature=settings.CHAT_TEMPERATURE, max_tokens=_voice_token_limit(prep["messages"]),
                 extra_body=_chat_extra(),
             )
             _usage = getattr(resp, "usage", None)
@@ -600,7 +605,7 @@ def stream_answer(question: str, session_token: str, use_web: bool = False,
         else:
             stream = get_client().chat.completions.create(
                 model=settings.CHAT_MODEL, messages=prep["messages"],
-                temperature=settings.CHAT_TEMPERATURE, max_tokens=settings.CHAT_MAX_TOKENS,
+                temperature=settings.CHAT_TEMPERATURE, max_tokens=_voice_token_limit(prep["messages"]),
                 stream=True, stream_options={"include_usage": True},
                 extra_body=_chat_extra(),
             )

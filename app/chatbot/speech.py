@@ -149,12 +149,12 @@ def speech_cost(text, fish=False):
     return len(text) * max(0, settings.TTS_USD_PER_CHARACTER)
 
 
-def generate(answer, session_token):
+def generate(answer, session_token, fast=False):
     text = spoken_text(answer)
     if not text or len(text) > 10000:
         raise SpeechError("length", 422)
     provider = arabic_provider()
-    key = hashlib.sha256(("dialect-v3|" + provider + "|" + settings.TTS_FISH_MODEL + "|"
+    key = hashlib.sha256((str(fast) + "|dialect-v3|" + provider + "|" + settings.TTS_FISH_MODEL + "|"
                           + settings.TTS_FISH_VOICE + "|" + settings.TTS_FISH_MALE_VOICE + "|" + settings.TTS_DIACRITICS_MODEL + "|"
                           + settings.TTS_MODEL + "|" + settings.TTS_VOICE + "|"
                           + settings.TTS_VOICE_EN + "|" + settings.TTS_VOICE_SV + "|" + text).encode()).hexdigest()
@@ -178,7 +178,7 @@ def generate(answer, session_token):
         preparation_estimate = 0
         if budget > 0 and detect_lang(text) != "ar":
             preparation_estimate += tokens.cost(settings.TTS_DIACRITICS_MODEL, len(text) + 100, 8)
-        if budget > 0 and _ARABIC_LETTERS.search(text):
+        if budget > 0 and not fast and _ARABIC_LETTERS.search(text):
             preparation_estimate += tokens.cost(settings.TTS_DIACRITICS_MODEL,
                                               len(text) + len(_DIACRITICS_PROMPT),
                                               _diacritics_limit(text))
@@ -186,7 +186,7 @@ def generate(answer, session_token):
             raise SpeechError("budget", 403)
         language = narration_language(text, session_token)
         model, voice = voice_profile(language, provider)
-        if language == "ar":
+        if language == "ar" and not fast:
             text = diacritize(text, session_token)
         # Harakat increase the character count billed by the speech provider.
         estimate = speech_cost(text, fish=language == "ar" and provider in {"fish", "fish_male"})

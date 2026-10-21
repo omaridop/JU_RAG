@@ -110,6 +110,6 @@
     });
     entries.clear();
   }
-  window.JUSpeech = { add, clear, refresh: () => entries.forEach(render) };
+  window.JUSpeech = { add, clear, stop: () => stop(active), refresh: () => entries.forEach(render) };
   window.addEventListener("pagehide", clear);
 })();

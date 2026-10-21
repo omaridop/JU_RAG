@@ -13,8 +13,39 @@ from ...core import db
 from ...core.utils import detect_lang
 from ...chatbot import rag, prompts, speech
 from ..ratelimit import allow, client_ip
+from ..security import validate_csrf
+from ...chatbot import transcription
 
 bp = Blueprint("chat", __name__)
+
+
+@bp.post("/api/voice/transcribe")
+def api_transcribe():
+    if not settings.TTS_ENABLED:
+        return jsonify(error="disabled"), 503
+    if not validate_csrf(request.headers.get("X-CSRF-Token", "")):
+        return jsonify(error="reload_required"), 403
+    tok = session.get("chat_token")
+    if not tok:
+        return jsonify(error="reload_required"), 403
+    if not request.content_length or request.content_length > transcription.MAX_BYTES + 8192:
+        return jsonify(error="audio_too_large"), 413
+    if not allow("transcription:" + client_ip()):
+        return jsonify(error="busy"), 429
+    if _limit_state(tok)["remaining"] <= 0:
+        return jsonify(error="limit"), 403
+    budget = rag._monthly_budget()
+    if budget > 0 and db.token_month_cost() + 0.002 >= budget:
+        return jsonify(error="budget"), 403
+    upload = request.files.get("audio")
+    if upload is None:
+        return jsonify(error="invalid_audio"), 400
+    fmt = {"audio/webm": "webm", "audio/mp4": "mp4", "audio/ogg": "ogg", "audio/wav": "wav"}.get(upload.mimetype)
+    try:
+        text = transcription.transcribe(upload.read(transcription.MAX_BYTES + 1), fmt, tok)
+    except speech.SpeechError as exc:
+        return jsonify(error=exc.code), exc.status
+    return jsonify(text=text), 200, {"Cache-Control": "no-store"}
 
 
 def _session_token() -> str:
@@ -35,6 +66,8 @@ def _limit_state(tok: str) -> dict:
 
 def _answer_style(data: dict) -> str:
     """Per-message answer length chosen by the student ('concise' | 'detailed')."""
+    if data.get("voice_mode") is True:
+        return "voice"
     return "detailed" if (data.get("answer_style") == "detailed") else "concise"
 
 
@@ -139,7 +172,7 @@ def api_speech():
     if not allow("speech:" + client_ip()):
         return jsonify(error="busy"), 429
     try:
-        audio = speech.generate(entry["answer"], tok)
+        audio = speech.generate(entry["answer"], tok, fast=data.get("voice_mode") is True)
     except speech.SpeechError as exc:
         return jsonify(error=exc.code), exc.status
     return Response(audio, mimetype="audio/mpeg", headers={"Cache-Control": "private, no-store"})
