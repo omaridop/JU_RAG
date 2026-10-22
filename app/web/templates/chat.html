@@ -83,23 +83,45 @@
     </div>
   </div>
 </div>
-<dialog id="voiceDialog" class="voice-dialog" aria-labelledby="voiceTitle" dir="rtl">
-  <button type="button" id="voiceClose" class="voice-close" aria-label="إنهاء المحادثة / End voice">×</button>
-  <div class="voice-avatar" aria-hidden="true">أ</div>
-  <h2 id="voiceTitle">أحمد الزعبي</h2>
-  <p>مساعدك بالذكاء الاصطناعي · بحكي معك بالأردني</p>
-  <p id="voiceStatus" role="status" aria-live="polite">اكبس الميكروفون واحكي، واكبس مرة ثانية للإرسال.</p>
-  <div class="voice-transcript" tabindex="0" aria-label="نص المحادثة">
-    <p id="voiceQuestion" dir="auto"></p><p id="voiceAnswer" dir="auto"></p>
+<dialog id="voiceDialog" class="voice-dialog" aria-labelledby="voiceTitle" aria-describedby="voicePrivacy" data-state="ready" dir="rtl" lang="ar">
+  <div class="voice-shell">
+    <header class="voice-heading">
+      <span class="voice-eyebrow">مساحة للحكي</span>
+      <h2 id="voiceTitle">أحمد الزعبي</h2>
+      <p>مساعدك بالذكاء الاصطناعي · باللهجة الأردنية</p>
+    </header>
+    <div class="voice-stage">
+      <button type="button" id="voiceOrb" class="voice-orb-button" aria-label="ابدأ المحادثة الصوتية" aria-describedby="voiceHint" autofocus>
+        <span class="voice-halo" aria-hidden="true"></span>
+        <span class="voice-orb" aria-hidden="true">
+          <span class="voice-ribbon"></span><span class="voice-ribbon"></span><span class="voice-ribbon"></span>
+          <span class="voice-wave"><i></i><i></i><i></i><i></i><i></i></span>
+        </span>
+      </button>
+      <p id="voiceStatus" class="voice-status" role="status" aria-live="polite" aria-atomic="true">خلّينا نحكي</p>
+      <p id="voiceHint" class="voice-hint">المس الدائرة وابدأ الحكي. أحمد بسمعك وبردّ عليك بصوته.</p>
+    </div>
+    <div class="voice-controls">
+      <button type="button" id="voiceMute" class="voice-control" aria-label="كتم الميكروفون" aria-pressed="false" disabled>
+        <span class="voice-control-disc"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/><path class="voice-mic-slash" d="m3 3 18 18"/></svg></span>
+        <span id="voiceMuteLabel">كتم</span>
+      </button>
+      <button type="button" id="voiceClose" class="voice-control voice-end" aria-label="إنهاء المحادثة الصوتية">
+        <span class="voice-control-disc"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m7 7 10 10M7 17 17 7"/></svg></span>
+        <span>إنهاء</span>
+      </button>
+    </div>
+    <details class="voice-info">
+      <summary><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6z"/><path d="m8 12 3 3 5-6"/></svg>الصوت والخصوصية</summary>
+      <p id="voicePrivacy">بعد البدء، نستمع تلقائياً بين الردود. يُرسل صوتك إلى OpenRouter وElevenLabs، ويُولّد صوت أحمد عبر Fish Audio. لا نحفظ التسجيل محلياً؛ يُحفظ نص المحادثة في سجل الدردشة. كتم أو إنهاء يوقف الميكروفون.</p>
+    </details>
   </div>
-  <button type="button" id="voiceRecord" class="voice-action">ابدأ الحكي</button>
-  <button type="button" id="voiceInterrupt" class="voice-secondary" hidden>إيقاف</button>
-  <p class="voice-privacy">تسجيل حتى ٣٠ ثانية لكل سؤال. يُرسل الصوت إلى OpenRouter وElevenLabs ولا يُحفظ محلياً. يُحفظ نص المحادثة في سجل الدردشة. الصوت مولّد بالذكاء الاصطناعي.</p>
 </dialog>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ asset('js/speech.js') }}"></script>
 <script src="{{ asset('js/chat.js') }}"></script>
+<script src="{{ asset('js/voice-core.js') }}"></script>
 <script src="{{ asset('js/voice.js') }}"></script>
 {% endblock %}

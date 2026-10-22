@@ -22,15 +22,17 @@ def test_invalid_audio_rejected(audio, fmt):
         transcription.transcribe(audio, fmt, "test")
 
 
-def test_transcription_schema_and_accounting(monkeypatch):
+@pytest.mark.parametrize("fmt", ["webm", "mp3", "mp4"])
+def test_transcription_schema_and_accounting(monkeypatch, fmt):
     calls, usage = [], []
     def post(url, **kw):
         calls.append(kw["json"])
         return httpx.Response(200, json={"text": "مرحبا", "usage": {"cost": 0.001}}, request=httpx.Request("POST", url))
     monkeypatch.setattr(transcription.httpx, "post", post)
     monkeypatch.setattr(transcription.db, "add_token_usage", lambda **kw: usage.append(kw))
-    assert transcription.transcribe(b"test", "webm", "test") == "مرحبا"
+    assert transcription.transcribe(b"test", fmt, "test") == "مرحبا"
     assert calls[0]["model"] == "elevenlabs/scribe-v2"
+    assert calls[0]["input_audio"]["format"] == ("m4a" if fmt == "mp4" else fmt)
     assert base64.b64decode(calls[0]["input_audio"]["data"]) == b"test"
     assert usage[0]["cost_usd"] == 0.001 and usage[0]["estimated"] == 0
 

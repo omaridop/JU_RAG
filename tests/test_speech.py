@@ -272,6 +272,20 @@ def test_dialect_prompt_uses_evidence_not_forced_translation():
     assert "whole sentence" in speech._DIACRITICS_PROMPT
 
 
+@pytest.mark.parametrize("text", ["هَلا، شو بدّك تعرف؟", "Hello, how can I help?"])
+def test_voice_conversation_pins_fish_and_skips_extra_llm(speech_env, monkeypatch, text):
+    monkeypatch.setattr(speech.db, "get_setting", lambda key: "elevenlabs" if key == "tts_ar_provider" else "0")
+    def unexpected(*args):
+        pytest.fail("Voice mode must not add a language or diacritics request")
+    monkeypatch.setattr(speech, "narration_language", unexpected)
+    monkeypatch.setattr(speech, "diacritize", unexpected)
+    speech.generate(text, "owner", fast=True)
+    payload = speech_env[0][0]["json"]
+    assert payload["model"] == "fish-audio/drama-3"
+    assert payload["voice"] == "4cb8371162134edeb4915672ffc66de6"
+    assert speech_env[1][-1]["cost_usd"] == pytest.approx(len(text.encode("utf-8")) * 0.00001)
+
+
 def test_diacritics_cache_expires(speech_env, monkeypatch):
     calls = fake_diacritics(monkeypatch, "مَرْحَبا")
     speech.diacritize("مرحبا", "owner")

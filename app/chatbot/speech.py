@@ -19,6 +19,9 @@ _lock = threading.Lock()
 _cache = OrderedDict()
 _prepared_cache = OrderedDict()
 _CACHE_BYTES = 32 * 1024 * 1024
+# Conversational Ahmad has a stable voice, independent of read-aloud settings.
+VOICE_CHAT_MODEL = "fish-audio/drama-3"
+VOICE_CHAT_VOICE = "4cb8371162134edeb4915672ffc66de6"
 _ARABIC_LETTERS = re.compile(r"[\u0621-\u064a\u066e-\u06d3]")
 _HARAKAT = re.compile(r"[\u064b-\u0652\u0670]")
 _DIACRITICS_PROMPT = """You prepare Arabic text for natural spoken narration.
@@ -153,8 +156,8 @@ def generate(answer, session_token, fast=False):
     text = spoken_text(answer)
     if not text or len(text) > 10000:
         raise SpeechError("length", 422)
-    provider = arabic_provider()
-    key = hashlib.sha256((str(fast) + "|dialect-v3|" + provider + "|" + settings.TTS_FISH_MODEL + "|"
+    provider = "fish_male" if fast else arabic_provider()
+    key = hashlib.sha256((str(fast) + "|handsfree-v1|" + VOICE_CHAT_MODEL + VOICE_CHAT_VOICE + provider + "|" + settings.TTS_FISH_MODEL + "|"
                           + settings.TTS_FISH_VOICE + "|" + settings.TTS_FISH_MALE_VOICE + "|" + settings.TTS_DIACRITICS_MODEL + "|"
                           + settings.TTS_MODEL + "|" + settings.TTS_VOICE + "|"
                           + settings.TTS_VOICE_EN + "|" + settings.TTS_VOICE_SV + "|" + text).encode()).hexdigest()
@@ -176,7 +179,7 @@ def generate(answer, session_token, fast=False):
         except (ValueError, TypeError):
             budget = settings.MONTHLY_BUDGET_USD
         preparation_estimate = 0
-        if budget > 0 and detect_lang(text) != "ar":
+        if budget > 0 and not fast and detect_lang(text) != "ar":
             preparation_estimate += tokens.cost(settings.TTS_DIACRITICS_MODEL, len(text) + 100, 8)
         if budget > 0 and not fast and _ARABIC_LETTERS.search(text):
             preparation_estimate += tokens.cost(settings.TTS_DIACRITICS_MODEL,
@@ -184,12 +187,12 @@ def generate(answer, session_token, fast=False):
                                               _diacritics_limit(text))
         if budget > 0 and db.token_month_cost() + estimate + preparation_estimate >= budget:
             raise SpeechError("budget", 403)
-        language = narration_language(text, session_token)
-        model, voice = voice_profile(language, provider)
+        language = detect_lang(text) if fast else narration_language(text, session_token)
+        model, voice = (VOICE_CHAT_MODEL, VOICE_CHAT_VOICE) if fast else voice_profile(language, provider)
         if language == "ar" and not fast:
             text = diacritize(text, session_token)
         # Harakat increase the character count billed by the speech provider.
-        estimate = speech_cost(text, fish=language == "ar" and provider in {"fish", "fish_male"})
+        estimate = speech_cost(text, fish=fast or (language == "ar" and provider in {"fish", "fish_male"}))
         if budget > 0 and db.token_month_cost() + estimate >= budget:
             raise SpeechError("budget", 403)
         try:

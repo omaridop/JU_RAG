@@ -11,7 +11,7 @@ MAX_BYTES = 1_000_000
 
 
 def transcribe(audio, fmt, session_token):
-    if not audio or len(audio) > MAX_BYTES or fmt not in {"webm", "mp4", "ogg", "wav"}:
+    if not audio or len(audio) > MAX_BYTES or fmt not in {"webm", "mp4", "ogg", "wav", "mp3"}:
         raise SpeechError("invalid_audio", 400)
     try:
         response = httpx.post(

@@ -40,7 +40,7 @@ def api_transcribe():
     upload = request.files.get("audio")
     if upload is None:
         return jsonify(error="invalid_audio"), 400
-    fmt = {"audio/webm": "webm", "audio/mp4": "mp4", "audio/ogg": "ogg", "audio/wav": "wav"}.get(upload.mimetype)
+    fmt = {"audio/webm": "webm", "audio/mp4": "mp4", "audio/ogg": "ogg", "audio/wav": "wav", "audio/mpeg": "mp3"}.get(upload.mimetype)
     try:
         text = transcription.transcribe(upload.read(transcription.MAX_BYTES + 1), fmt, tok)
     except speech.SpeechError as exc:
