@@ -41,3 +41,7 @@ data/*.db-shm
 # ─── Logs ─────────────────────────────────────────────────
 *.log
 logs/
+
+# Local document exports and scratch files (may contain personal information)
+output/
+tmp/
